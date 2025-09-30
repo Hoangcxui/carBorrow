@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   Bars3Icon, 
   XMarkIcon,
-  CarIcon,
+  TruckIcon as CarIcon,
   UserCircleIcon,
   ArrowRightOnRectangleIcon
 } from '@heroicons/react/24/outline';
@@ -47,6 +47,12 @@ export default function Navbar() {
 
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
+                <Link 
+                  href="/dashboard" 
+                  className="text-gray-700 hover:text-primary-600 transition-colors"
+                >
+                  Dashboard
+                </Link>
                 <span className="text-sm text-gray-600">
                   Welcome, {user?.firstName}
                 </span>
@@ -137,6 +143,13 @@ export default function Navbar() {
               <div className="border-t border-gray-200 pt-4 space-y-4">
                 {isAuthenticated ? (
                   <>
+                    <Link 
+                      href="/dashboard" 
+                      className="block text-gray-700 hover:text-primary-600"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
                     <div className="flex items-center space-x-2">
                       <UserCircleIcon className="h-5 w-5 text-gray-400" />
                       <span className="text-sm text-gray-600">

@@ -54,7 +54,7 @@ namespace backend.Controllers
                     return BadRequest(new { message = "Invalid file type or size. Only JPG, PNG, GIF, WEBP files under 5MB are allowed" });
                 }
 
-                var imagePath = await _fileUploadService.UploadVehicleImageAsync(vehicleId, file, isPrimary);
+                var imagePath = await _fileUploadService.UploadVehicleImageAsync(file, vehicleId, isPrimary);
 
                 var userId = int.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? "0");
                 await _auditService.LogAsync(

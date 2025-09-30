@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using backend.Models;
 using backend.Services;
+using backend.DTOs;
 
 namespace backend.Controllers
 {
@@ -29,7 +30,7 @@ namespace backend.Controllers
         // Chỉ chính user hoặc Admin được sửa thông tin user
         [HttpPut("{id}")]
         [Authorize]
-        public IActionResult UpdateUser(Guid id, [FromBody] User update)
+        public IActionResult UpdateUser(int id, [FromBody] UpdateUserDto update)
         {
             var user = _db.Users.Find(id);
             if (user == null) return NotFound("User không tồn tại");
@@ -37,8 +38,9 @@ namespace backend.Controllers
             var currentRole = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
             if (currentUserId != user.Id.ToString() && currentRole != "Admin")
                 return Forbid("Bạn không có quyền sửa user này");
-            user.FullName = update.FullName;
-            user.Phone = update.Phone;
+            user.FirstName = update.FirstName ?? user.FirstName;
+            user.LastName = update.LastName ?? user.LastName;
+            user.PhoneNumber = update.PhoneNumber ?? user.PhoneNumber;
             user.UpdatedAt = DateTime.UtcNow;
             _db.SaveChanges();
             return Ok("Cập nhật user thành công");
@@ -47,7 +49,7 @@ namespace backend.Controllers
         // Chỉ Admin mới được xóa user
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        public IActionResult DeleteUser(Guid id)
+        public IActionResult DeleteUser(int id)
         {
             var user = _db.Users.Find(id);
             if (user == null) return NotFound("User không tồn tại");

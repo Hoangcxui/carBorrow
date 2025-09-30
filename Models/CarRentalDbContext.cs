@@ -11,7 +11,7 @@ namespace backend.Models
         public DbSet<Vehicle> Vehicles { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<VehicleImage> VehicleImages { get; set; }
-        public DbSet<Rental> Rentals { get; set; }
+        public DbSet<Booking> Bookings { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
 
@@ -80,27 +80,30 @@ namespace backend.Models
                 entity.Property(e => e.UploadedAt).HasDefaultValueSql("GETUTCDATE()");
                 
                 entity.HasOne(e => e.Vehicle)
-                      .WithMany(v => v.Images)
+                      .WithMany()
                       .HasForeignKey(e => e.VehicleId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Rental configuration
-            modelBuilder.Entity<Rental>(entity =>
+            // Booking configuration
+            modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasKey(e => e.Id);
                 entity.Property(e => e.TotalCost).HasColumnType("decimal(10,2)");
                 entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Pending");
+                entity.Property(e => e.PickupLocation).HasMaxLength(255);
+                entity.Property(e => e.ReturnLocation).HasMaxLength(255);
+                entity.Property(e => e.Review).HasMaxLength(1000);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
                 
                 entity.HasOne(e => e.User)
-                      .WithMany(u => u.Rentals)
+                      .WithMany(u => u.Bookings)
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Restrict);
                       
                 entity.HasOne(e => e.Vehicle)
-                      .WithMany(v => v.Rentals)
+                      .WithMany(v => v.Bookings)
                       .HasForeignKey(e => e.VehicleId)
                       .OnDelete(DeleteBehavior.Restrict);
             });

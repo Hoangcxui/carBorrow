@@ -23,15 +23,27 @@ namespace backend.Models
         public string PhoneNumber { get; set; } = string.Empty;
         
         public bool IsActive { get; set; } = true;
+        public bool IsEmailConfirmed { get; set; } = false;
+        
+        [StringLength(500)]
+        public string EmailVerificationToken { get; set; } = string.Empty;
+        
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
         
         public int RoleId { get; set; }
         public Role Role { get; set; } = null!;
         
-        public ICollection<Rental> Rentals { get; set; } = new List<Rental>();
+        public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
         public ICollection<AuditLog> AuditLogs { get; set; } = new List<AuditLog>();
+        
+        // Computed properties
+        [NotMapped]
+        public string FullName => $"{FirstName} {LastName}";
+        
+        [NotMapped]
+        public string Phone => PhoneNumber;
     }
 
     public class Role
@@ -81,14 +93,36 @@ namespace backend.Models
         [Column(TypeName = "decimal(10,2)")]
         public decimal DailyRate { get; set; }
         
-        public bool IsAvailable { get; set; } = true;
+        public int Seats { get; set; } = 5;
+        
+        [StringLength(50)]
+        public string Transmission { get; set; } = string.Empty;
+        
+        [StringLength(30)]
+        public string FuelType { get; set; } = string.Empty;
+        
+        public double Mileage { get; set; } = 0;
+        
+        [StringLength(1000)]
+        public string Features { get; set; } = string.Empty;
+        
+        [StringLength(50)]
+        public string Status { get; set; } = "Available";
+        
+        [StringLength(1000)]
+        public string Description { get; set; } = string.Empty;
+        
+        [StringLength(500)]
+        public string ImageUrl { get; set; } = string.Empty;
+        
+        public bool IsDeleted { get; set; } = false;
         public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
         
         public int CategoryId { get; set; }
         public Category Category { get; set; } = null!;
         
-        public ICollection<Rental> Rentals { get; set; } = new List<Rental>();
-        public ICollection<VehicleImage> Images { get; set; } = new List<VehicleImage>();
+        public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
 
     public class VehicleImage
@@ -105,7 +139,7 @@ namespace backend.Models
         public DateTime UploadedAt { get; set; }
     }
 
-    public class Rental
+    public class Booking
     {
         public int Id { get; set; }
         
@@ -118,11 +152,22 @@ namespace backend.Models
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         
+        [StringLength(255)]
+        public string PickupLocation { get; set; } = string.Empty;
+        
+        [StringLength(255)]
+        public string ReturnLocation { get; set; } = string.Empty;
+        
         [Column(TypeName = "decimal(10,2)")]
         public decimal TotalCost { get; set; }
         
         [StringLength(50)]
         public string Status { get; set; } = "Pending"; // Pending, Confirmed, Active, Completed, Cancelled
+        
+        public int? Rating { get; set; }
+        
+        [StringLength(1000)]
+        public string Review { get; set; } = string.Empty;
         
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
@@ -142,6 +187,13 @@ namespace backend.Models
         public DateTime Created { get; set; }
         public DateTime? Revoked { get; set; }
         public bool IsActive { get; set; } = true;
+        
+        // Alias properties for compatibility
+        [NotMapped]
+        public DateTime ExpiresAt => Expires;
+        
+        [NotMapped]
+        public DateTime? RevokedAt => Revoked;
     }
 
     public class AuditLog

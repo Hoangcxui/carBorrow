@@ -1,84 +1,190 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using backend.Models;
+using backend.DTOs;
+using backend.Services;
+using System.Security.Claims;
 
 namespace backend.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    public class VehicleController : ControllerBase
+    public class VehiclesController : ControllerBase
     {
-        private readonly CarRentalDbContext _db;
-        public VehicleController(CarRentalDbContext db)
+        private readonly IVehicleService _vehicleService;
+        private readonly IAuditService _auditService;
+        private readonly ILogger<VehiclesController> _logger;
+
+        public VehiclesController(
+            IVehicleService vehicleService,
+            IAuditService auditService,
+            ILogger<VehiclesController> logger)
         {
-            _db = db;
+            _vehicleService = vehicleService;
+            _auditService = auditService;
+            _logger = logger;
         }
 
-        // Lấy danh sách xe
+        /// <summary>
+        /// Get all vehicles
+        /// </summary>
         [HttpGet]
         [AllowAnonymous]
-        public IActionResult GetAll()
+        public async Task<ActionResult<IEnumerable<VehicleDto>>> GetAllVehicles()
         {
-            var vehicles = _db.Vehicles.Select(v => new {
-                v.Id, v.Make, v.Model, v.Year, v.Type, v.Seats, v.Transmission, v.FuelType, v.PricePerDay, v.Status, v.Description, v.CreatedAt
-            }).ToList();
-            return Ok(vehicles);
+            try
+            {
+                var vehicles = await _vehicleService.GetAllVehiclesAsync();
+                return Ok(vehicles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all vehicles");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
-        // Xem chi tiết xe
+        /// <summary>
+        /// Get vehicle by ID
+        /// </summary>
         [HttpGet("{id}")]
         [AllowAnonymous]
-        public IActionResult GetById(Guid id)
+        public async Task<ActionResult<VehicleDto>> GetVehicle(int id)
         {
-            var v = _db.Vehicles.Find(id);
-            if (v == null) return NotFound("Xe không tồn tại");
-            return Ok(v);
+            try
+            {
+                var vehicle = await _vehicleService.GetVehicleByIdAsync(id);
+                if (vehicle == null)
+                    return NotFound("Vehicle not found");
+
+                return Ok(vehicle);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving vehicle {VehicleId}", id);
+                return StatusCode(500, "Internal server error");
+            }
         }
 
-        // Thêm xe mới (Admin, Staff)
+        /// <summary>
+        /// Search vehicles with filters
+        /// </summary>
+        [HttpPost("search")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<VehicleDto>>> SearchVehicles(VehicleSearchDto searchDto)
+        {
+            try
+            {
+                var vehicles = await _vehicleService.SearchVehiclesAsync(searchDto);
+                return Ok(vehicles);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching vehicles");
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        /// <summary>
+        /// Create a new vehicle (Admin/Staff only)
+        /// </summary>
         [HttpPost]
         [Authorize(Roles = "Admin,Staff")]
-        public IActionResult Create([FromBody] Vehicle vehicle)
+        public async Task<ActionResult<VehicleDto>> CreateVehicle(CreateVehicleDto createVehicleDto)
         {
-            vehicle.Id = Guid.NewGuid();
-            vehicle.CreatedAt = DateTime.UtcNow;
-            _db.Vehicles.Add(vehicle);
-            _db.SaveChanges();
-            return Ok(vehicle);
+            try
+            {
+                var vehicle = await _vehicleService.CreateVehicleAsync(createVehicleDto);
+                
+                var currentUserId = GetCurrentUserId();
+                await _auditService.LogAsync(currentUserId, "VehicleCreated", $"Created vehicle {vehicle.Id}", "Vehicle", vehicle.Id);
+
+                return CreatedAtAction(nameof(GetVehicle), new { id = vehicle.Id }, vehicle);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating vehicle");
+                return StatusCode(500, "Internal server error");
+            }
         }
 
-        // Cập nhật thông tin xe (Admin, Staff)
+        /// <summary>
+        /// Update a vehicle (Admin/Staff only)</summary>
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin,Staff")]
-        public IActionResult Update(Guid id, [FromBody] Vehicle update)
+        public async Task<ActionResult<VehicleDto>> UpdateVehicle(int id, UpdateVehicleDto updateVehicleDto)
         {
-            var v = _db.Vehicles.Find(id);
-            if (v == null) return NotFound("Xe không tồn tại");
-            v.Make = update.Make;
-            v.Model = update.Model;
-            v.Year = update.Year;
-            v.Type = update.Type;
-            v.Seats = update.Seats;
-            v.Transmission = update.Transmission;
-            v.FuelType = update.FuelType;
-            v.PricePerDay = update.PricePerDay;
-            v.Status = update.Status;
-            v.Description = update.Description;
-            v.CreatedAt = v.CreatedAt;
-            _db.SaveChanges();
-            return Ok(v);
+            try
+            {
+                var vehicle = await _vehicleService.UpdateVehicleAsync(id, updateVehicleDto);
+                if (vehicle == null)
+                    return NotFound("Vehicle not found");
+
+                var currentUserId = GetCurrentUserId();
+                await _auditService.LogAsync(currentUserId, "VehicleUpdated", $"Updated vehicle {id}", "Vehicle", id);
+
+                return Ok(vehicle);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating vehicle {VehicleId}", id);
+                return StatusCode(500, "Internal server error");
+            }
         }
 
-        // Xóa xe (chỉ Admin)
+        /// <summary>
+        /// Delete a vehicle (Admin only)
+        /// </summary>
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
-        public IActionResult Delete(Guid id)
+        public async Task<IActionResult> DeleteVehicle(int id)
         {
-            var v = _db.Vehicles.Find(id);
-            if (v == null) return NotFound("Xe không tồn tại");
-            _db.Vehicles.Remove(v);
-            _db.SaveChanges();
-            return Ok("Xóa xe thành công");
+            try
+            {
+                var success = await _vehicleService.DeleteVehicleAsync(id);
+                if (!success)
+                    return NotFound("Vehicle not found");
+
+                var currentUserId = GetCurrentUserId();
+                await _auditService.LogAsync(currentUserId, "VehicleDeleted", $"Deleted vehicle {id}", "Vehicle", id);
+
+                return NoContent();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting vehicle {VehicleId}", id);
+                return StatusCode(500, "Internal server error");
+            }
         }
+
+        /// <summary>
+        /// Check vehicle availability
+        /// </summary>
+        [HttpPost("{id}/check-availability")]
+        [AllowAnonymous]
+        public async Task<ActionResult<bool>> CheckAvailability(int id, [FromBody] CheckAvailabilityDto checkDto)
+        {
+            try
+            {
+                var isAvailable = await _vehicleService.IsVehicleAvailableAsync(id, checkDto.StartDate, checkDto.EndDate);
+                return Ok(new { IsAvailable = isAvailable });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking availability for vehicle {VehicleId}", id);
+                return StatusCode(500, "Internal server error");
+            }
+        }
+
+        private int GetCurrentUserId()
+        {
+            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.Parse(userIdClaim ?? "0");
+        }
+    }
+
+    public class CheckAvailabilityDto
+    {
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
     }
 }

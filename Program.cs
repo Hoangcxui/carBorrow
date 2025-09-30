@@ -31,7 +31,9 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(builder.Configuration["Frontend:CorsOrigins"]?.Split(',') ?? new[] { "http://localhost:3000", "https://localhost:3001" })
+        policy.WithOrigins("http://localhost:3000", "https://localhost:3000", 
+                          "http://localhost:3001", "https://localhost:3001",
+                          "http://localhost:3002", "https://localhost:3002")
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();
@@ -90,8 +92,17 @@ builder.Services.AddSwaggerGen(options =>
     if (File.Exists(xmlPath))
         options.IncludeXmlComments(xmlPath);
 });
-builder.Services.AddDbContext<CarRentalDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+// Database configuration - Use InMemory for development
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddDbContext<CarRentalDbContext>(options =>
+        options.UseInMemoryDatabase("CarRentalDb"));
+}
+else
+{
+    builder.Services.AddDbContext<CarRentalDbContext>(options =>
+        options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+}
 
 // Repository pattern
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
@@ -101,6 +112,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<IVehicleService, VehicleService>();
+builder.Services.AddScoped<IBookingService, BookingService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // Role-based Authorization Policies
 builder.Services.AddAuthorization(options =>
@@ -169,3 +183,6 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
+// Make Program class accessible for testing
+public partial class Program { }

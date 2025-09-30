@@ -66,32 +66,25 @@ namespace backend.Controllers
         {
             try
             {
-                var user = await _authService.AuthenticateAsync(loginDto.Email, loginDto.Password);
-                if (user == null)
+                var result = await _authService.AuthenticateAsync(loginDto);
+                if (!result.Success)
                 {
-                    _logger.LogWarning("Login failed for {Email}", loginDto.Email);
-                    return Unauthorized(new { message = "Invalid credentials" });
+                    _logger.LogWarning("Login failed for {Email}: {Message}", loginDto.Email, result.Message);
+                    return Unauthorized(new { message = result.Message });
                 }
-
-                var tokenResponse = await _tokenService.GenerateTokenAsync(user);
-                
-                await _auditService.LogAsync(
-                    user.Id, 
-                    "LOGIN", 
-                    $"User logged in from {HttpContext.Connection.RemoteIpAddress}", 
-                    "User", 
-                    user.Id,
-                    HttpContext.Connection.RemoteIpAddress?.ToString() ?? ""
-                );
 
                 _logger.LogInformation("User logged in successfully: {Email}", loginDto.Email);
 
-                return Ok(tokenResponse);
+                return Ok(new {
+                    message = result.Message,
+                    accessToken = result.AccessToken,
+                    refreshToken = result.RefreshToken
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Login failed for {Email}", loginDto.Email);
-                return BadRequest(new { message = ex.Message });
+                return BadRequest(new { message = "An error occurred during login" });
             }
         }
 
@@ -183,7 +176,7 @@ namespace backend.Controllers
                     lastName = user.LastName,
                     email = user.Email,
                     phoneNumber = user.PhoneNumber,
-                    role = user.Role?.Name
+                    role = user.Role
                 });
             }
             catch (Exception ex)

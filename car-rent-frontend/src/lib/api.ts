@@ -2,7 +2,7 @@ import axios, { AxiosResponse, AxiosError } from 'axios';
 import Cookies from 'js-cookie';
 import toast from 'react-hot-toast';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://localhost:7000/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
 
 // Create axios instance
 const apiClient = axios.create({
@@ -69,10 +69,10 @@ apiClient.interceptors.response.use(
     // Handle other errors
     if (error.response?.status === 429) {
       toast.error('Too many requests. Please try again later.');
-    } else if (error.response?.status >= 500) {
+    } else if (error.response?.status && error.response.status >= 500) {
       toast.error('Server error. Please try again later.');
-    } else if (error.response?.data?.message) {
-      toast.error(error.response.data.message);
+    } else if (error.response?.data && typeof error.response.data === 'object' && 'message' in error.response.data) {
+      toast.error((error.response.data as any).message);
     }
 
     return Promise.reject(error);

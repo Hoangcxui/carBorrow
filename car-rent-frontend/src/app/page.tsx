@@ -2,10 +2,13 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
 import { 
-  CarIcon, 
+  TruckIcon as CarIcon, 
   ClockIcon, 
   ShieldCheckIcon, 
-  StarIcon 
+  StarIcon,
+  MapPinIcon,
+  CalendarDaysIcon,
+  MagnifyingGlassIcon
 } from '@heroicons/react/24/outline';
 
 export default function HomePage() {
@@ -13,24 +16,75 @@ export default function HomePage() {
     <>
       <Navbar />
       
-      {/* Hero Section */}
+      {/* Hero Section with Search */}
       <section className="bg-gradient-to-r from-primary-600 to-primary-800 text-white">
         <div className="page-container py-20">
-          <div className="max-w-3xl">
+          <div className="max-w-4xl mx-auto text-center">
             <h1 className="text-5xl font-bold mb-6">
-              Rent Premium Cars with
-              <span className="text-primary-200"> Confidence</span>
+              Thuê xe dễ dàng với
+              <span className="text-primary-200"> CarBorrow</span>
             </h1>
             <p className="text-xl mb-8 text-primary-100">
-              Experience the freedom of driving with our wide selection of premium vehicles. 
-              Book online, drive away happy.
+              Trải nghiệm tự do lái xe với bộ sưu tập đa dạng các phương tiện chất lượng cao. 
+              Đặt online, lái xe ngay!
             </p>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Link href="/vehicles" className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors text-center">
-                Browse Vehicles
+            
+            {/* Quick Search Form */}
+            <div className="bg-white rounded-2xl p-6 shadow-xl max-w-5xl mx-auto">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Địa điểm</label>
+                  <div className="relative">
+                    <MapPinIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <select className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900">
+                      <option>Hồ Chí Minh</option>
+                      <option>Hà Nội</option>
+                      <option>Đà Nẵng</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Ngày nhận</label>
+                  <div className="relative">
+                    <CalendarDaysIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input 
+                      type="date" 
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Ngày trả</label>
+                  <div className="relative">
+                    <CalendarDaysIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+                    <input 
+                      type="date" 
+                      className="w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent text-gray-900"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700 opacity-0">Search</label>
+                  <Link 
+                    href="/vehicles" 
+                    className="w-full bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center"
+                  >
+                    <MagnifyingGlassIcon className="h-5 w-5 mr-2" />
+                    Tìm xe
+                  </Link>
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
+              <Link href="/vehicles" className="bg-white text-primary-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors">
+                Xem tất cả xe
               </Link>
-              <Link href="/register" className="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors text-center">
-                Sign Up Now
+              <Link href="/auth/register" className="border-2 border-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-primary-600 transition-colors">
+                Đăng ký ngay
               </Link>
             </div>
           </div>
