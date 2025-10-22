@@ -15,6 +15,17 @@ namespace backend.DTOs
         public int CategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
         public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public int Seats { get; set; }
+        public string Transmission { get; set; } = string.Empty;
+        public string FuelType { get; set; } = string.Empty;
+        public double Mileage { get; set; }
+        public string Features { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string Description { get; set; } = string.Empty;
+        public string ImageUrl { get; set; } = string.Empty;
+        public decimal AverageRating { get; set; }
+        public int TotalBookings { get; set; }
     }
 
     public class CreateVehicleDto
