@@ -53,7 +53,7 @@ export default function AuthPage() {
     } else {
       if (!formData.fullName || !formData.email || !formData.phone || 
           !formData.password || !formData.confirmPassword) {
-        toast.error('Vui lòng điền đầy đủ thông tin');
+        toast.error('Vui lòng điền đầy đủ thông tin nhé nhé ');
         return false;
       }
       if (!/\S+@\S+\.\S+/.test(formData.email)) {
