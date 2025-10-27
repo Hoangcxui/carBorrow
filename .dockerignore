@@ -1,0 +1,16 @@
+# Docker
+.dockerignore
+**/node_modules
+**/npm-debug.log
+**/.next
+**/.git
+**/.gitignore
+**/README.md
+**/Dockerfile
+**/docker-compose.yml
+
+# Backend
+**/bin
+**/obj
+**/logs
+**/*.log
