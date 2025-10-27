@@ -1,0 +1,37 @@
+# Build results
+bin/
+obj/
+*.dll
+*.pdb
+
+# Logs  
+logs/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Node modules
+node_modules/
+
+# Next.js
+.next/
+out/
+
+# Package manager
+package-lock.json
+yarn.lock
+
+# IDE
+.vs/
+.vscode/
+*.suo
+*.user
+*.userprefs
+.DS_Store
+
+# Temporary files
+tmp/
+temp/
