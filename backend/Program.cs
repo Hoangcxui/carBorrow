@@ -31,12 +31,23 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000", "https://localhost:3000", 
-                          "http://localhost:3001", "https://localhost:3001",
-                          "http://localhost:3002", "https://localhost:3002")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        if (builder.Environment.IsDevelopment())
+        {
+            // In development, allow all origins for easier testing
+            policy.AllowAnyOrigin()
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        }
+        else
+        {
+            // In production, restrict to specific origins
+            policy.WithOrigins("http://localhost:3000", "https://localhost:3000", 
+                              "http://localhost:3001", "https://localhost:3001",
+                              "http://localhost:3002", "https://localhost:3002")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials();
+        }
     });
 });
 
@@ -137,6 +148,9 @@ builder.Services.AddAuthentication(options =>
 
 var app = builder.Build();
 
+// CORS must be early in pipeline (before other middleware)
+app.UseCors("AllowFrontend");
+
 // Exception handling middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
@@ -156,9 +170,6 @@ app.UseSerilogRequestLogging();
 // Serve static files (for uploaded images)
 app.UseStaticFiles();
 
-// Use CORS
-app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -170,8 +181,25 @@ app.MapControllers();
 // Seed data on startup
 using (var scope = app.Services.CreateScope())
 {
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     var context = scope.ServiceProvider.GetRequiredService<CarRentalDbContext>();
-    await DbSeeder.SeedAsync(context);
+    
+    try
+    {
+        logger.LogInformation("Starting database setup...");
+        
+        // Apply pending migrations automatically (or use EnsureCreated for quick dev setup)
+        // await context.Database.MigrateAsync();
+        await context.Database.EnsureCreatedAsync(); // Creates DB from current DbContext schema
+        
+        logger.LogInformation("Database ensured. Starting seeding...");
+        await DbSeeder.SeedAsync(context);
+        logger.LogInformation("Database seeding completed successfully.");
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "An error occurred during database setup or seeding.");
+    }
 }
 
 app.Run();
