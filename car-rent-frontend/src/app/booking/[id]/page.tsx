@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import QRPaymentModal from '@/components/QRPaymentModal';
 import { 
   ArrowLeftIcon,
   StarIcon,
@@ -21,7 +22,9 @@ import {
   UserIcon,
   PhoneIcon,
   EnvelopeIcon,
-  IdentificationIcon
+  IdentificationIcon,
+  QrCodeIcon,
+  BanknotesIcon
 } from '@heroicons/react/24/outline';
 import toast from 'react-hot-toast';
 
@@ -43,10 +46,8 @@ const vehicleData = {
 };
 
 const paymentMethods = [
-  { id: 'credit', name: 'Thẻ tín dụng', icon: CreditCardIcon, popular: true },
-  { id: 'debit', name: 'Thẻ ghi nợ', icon: CreditCardIcon, popular: false },
-  { id: 'wallet', name: 'Ví điện tử', icon: PhoneIcon, popular: true },
-  { id: 'transfer', name: 'Chuyển khoản', icon: CurrencyDollarIcon, popular: false }
+  { id: 'qr', name: 'Thanh toán QR', icon: QrCodeIcon, popular: true, description: 'VietQR / VNPay - Thanh toán nhanh chóng' },
+  { id: 'cod', name: 'Thanh toán khi lấy xe', icon: BanknotesIcon, popular: true, description: 'Thanh toán bằng tiền mặt khi nhận xe' }
 ];
 
 const locations = [
@@ -62,6 +63,8 @@ export default function BookingPage({ params }: { params: { id: string } }) {
   const searchParams = useSearchParams();
   
   const [currentStep, setCurrentStep] = useState(1);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<any>(null);
   const [bookingData, setBookingData] = useState({
     // Dates from URL params
     pickupDate: searchParams?.get('pickup') || '',
@@ -88,7 +91,7 @@ export default function BookingPage({ params }: { params: { id: string } }) {
     addOns: [] as string[],
     
     // Payment
-    paymentMethod: 'credit',
+    paymentMethod: 'qr',
     
     // Special requests
     specialRequests: ''
@@ -190,13 +193,64 @@ export default function BookingPage({ params }: { params: { id: string } }) {
     setCurrentStep(prev => Math.max(prev - 1, 1));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (validateStep(4)) {
-      // Simulate booking submission
-      toast.success('Đặt xe thành công! Chúng tôi sẽ liên hệ xác nhận trong vòng 30 phút.');
-      setTimeout(() => {
-        router.push('/bookings');
-      }, 2000);
+      try {
+        // Create proper date format for backend
+        const formatDateForAPI = (dateStr: string) => {
+          if (!dateStr) return new Date().toISOString().split('T')[0];
+          // If already ISO or YYYY-MM-DD format, keep it
+          return dateStr;
+        };
+
+        // Save booking to API with flat customer fields (matching backend DTO)
+        const bookingPayload = {
+          vehicleId: vehicle.id,
+          customerName: bookingData.customerInfo.fullName,
+          customerEmail: bookingData.customerInfo.email,
+          customerPhone: bookingData.customerInfo.phone,
+          customerAddress: bookingData.customerInfo.address,
+          pickupDate: formatDateForAPI(bookingData.pickupDate),
+          dropoffDate: formatDateForAPI(bookingData.dropoffDate),
+          pickupTime: bookingData.pickupTime || '10:00',
+          dropoffTime: bookingData.dropoffTime || '10:00',
+          pickupLocation: bookingData.pickupLocation || 'Main Office',
+          dropoffLocation: bookingData.dropoffLocation || 'Main Office',
+          totalAmount: calculateTotal(),
+          paymentMethod: bookingData.paymentMethod,
+          specialRequests: bookingData.specialRequests || ''
+        };
+
+        const response = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bookingPayload)
+        });
+
+        if (!response.ok) {
+          const error = await response.text();
+          throw new Error(`API error: ${error}`);
+        }
+
+        const savedBooking = await response.json();
+        
+        // Save customer email to localStorage for booking history lookup
+        localStorage.setItem('customerEmail', bookingData.customerInfo.email);
+        setCreatedBooking(savedBooking);
+        
+        // Show QR modal for QR payment, otherwise redirect
+        if (bookingData.paymentMethod === 'qr') {
+          setShowQRModal(true);
+        } else {
+          toast.success('Đặt xe thành công! Chúng tôi sẽ liên hệ xác nhận trong vòng 30 phút.');
+          setTimeout(() => {
+            router.push('/my-bookings');
+          }, 2000);
+        }
+      } catch (error) {
+        toast.error('Lỗi: Không thể lưu booking. Vui lòng thử lại!');
+        console.error(error);
+      }
     } else {
       toast.error('Vui lòng hoàn tất thông tin thanh toán');
     }
@@ -503,36 +557,54 @@ export default function BookingPage({ params }: { params: { id: string } }) {
                   <div className="space-y-6">
                     <h3 className="text-xl font-semibold text-gray-900">Phương thức thanh toán</h3>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 gap-4">
                       {paymentMethods.map((method) => (
                         <div
                           key={method.id}
-                          className={`border rounded-lg p-4 cursor-pointer transition-colors ${
+                          className={`border-2 rounded-lg p-5 cursor-pointer transition-all ${
                             bookingData.paymentMethod === method.id
-                              ? 'border-primary-500 bg-primary-50'
-                              : 'border-gray-200 hover:border-gray-300'
+                              ? 'border-primary-500 bg-primary-50 shadow-md'
+                              : 'border-gray-200 hover:border-gray-300 hover:shadow-sm'
                           }`}
                           onClick={() => handleInputChange('paymentMethod', '', method.id)}
                         >
-                          <div className="flex items-center">
+                          <div className="flex items-start">
                             <input
                               type="radio"
                               name="paymentMethod"
                               value={method.id}
                               checked={bookingData.paymentMethod === method.id}
                               onChange={(e) => handleInputChange('paymentMethod', '', e.target.value)}
-                              className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 mr-3"
+                              className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 mr-4 mt-1"
                             />
-                            <method.icon className="h-5 w-5 text-gray-400 mr-3" />
-                            <span className="font-medium text-gray-900">{method.name}</span>
-                            {method.popular && (
-                              <span className="ml-2 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">
-                                Phổ biến
-                              </span>
-                            )}
+                            <div className="flex-1">
+                              <div className="flex items-center mb-2">
+                                <method.icon className="h-6 w-6 text-primary-600 mr-3" />
+                                <span className="font-semibold text-gray-900 text-lg">{method.name}</span>
+                                {method.popular && (
+                                  <span className="ml-3 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
+                                    Phổ biến
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-600 ml-9">{method.description}</p>
+                            </div>
                           </div>
                         </div>
                       ))}
+                    </div>
+
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <div className="flex items-start">
+                        <ExclamationTriangleIcon className="h-5 w-5 text-blue-600 mr-3 mt-0.5" />
+                        <div className="text-sm text-blue-800">
+                          <p className="font-medium mb-1">Lưu ý thanh toán:</p>
+                          <ul className="list-disc list-inside space-y-1 text-blue-700">
+                            <li><strong>Thanh toán QR:</strong> Quét mã QR và chuyển khoản ngay, đơn sẽ được xác nhận trong 5-10 phút</li>
+                            <li><strong>Thanh toán khi lấy xe:</strong> Thanh toán bằng tiền mặt hoặc thẻ khi nhận xe tại địa điểm</li>
+                          </ul>
+                        </div>
+                      </div>
                     </div>
 
                     <div>
@@ -739,6 +811,18 @@ export default function BookingPage({ params }: { params: { id: string } }) {
       </div>
 
       <Footer />
+
+      {/* QR Payment Modal */}
+      <QRPaymentModal 
+        isOpen={showQRModal}
+        onClose={() => {
+          setShowQRModal(false);
+          router.push('/dashboard');
+        }}
+        bookingId={createdBooking?.bookingId || 0}
+        amount={calculateTotal()}
+        customerEmail={bookingData.customerInfo.email}
+      />
     </>
   );
 }

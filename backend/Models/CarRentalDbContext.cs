@@ -14,6 +14,7 @@ namespace backend.Models
         public DbSet<Booking> Bookings { get; set; }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<Payment> Payments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -89,10 +90,10 @@ namespace backend.Models
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                entity.Property(e => e.TotalCost).HasColumnType("decimal(10,2)");
+                // entity.Property(e => e.TotalCost).HasColumnType("decimal(10,2)"); // TODO: Renamed to TotalAmount
                 entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Pending");
                 entity.Property(e => e.PickupLocation).HasMaxLength(255);
-                entity.Property(e => e.ReturnLocation).HasMaxLength(255);
+                // entity.Property(e => e.ReturnLocation).HasMaxLength(255); // TODO: Renamed to DropoffLocation
                 entity.Property(e => e.Review).HasMaxLength(1000);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
@@ -134,6 +135,24 @@ namespace backend.Models
                 entity.HasOne(e => e.User)
                       .WithMany(u => u.AuditLogs)
                       .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // Payment configuration
+            modelBuilder.Entity<Payment>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.PaymentMethod).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.PaymentStatus).IsRequired().HasMaxLength(50).HasDefaultValue("Pending");
+                entity.Property(e => e.Amount).HasColumnType("decimal(10,2)");
+                entity.Property(e => e.TransactionId).HasMaxLength(100);
+                entity.Property(e => e.QRCodeUrl).HasMaxLength(500);
+                entity.Property(e => e.PaymentDescription).HasMaxLength(1000);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                
+                entity.HasOne(e => e.Booking)
+                      .WithMany(b => b.Payments)
+                      .HasForeignKey(e => e.BookingId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
         }

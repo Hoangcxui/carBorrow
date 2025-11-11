@@ -115,9 +115,11 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
-builder.Services.AddScoped<IVehicleService, VehicleService>();
-builder.Services.AddScoped<IBookingService, BookingService>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
+// builder.Services.AddScoped<IVehicleService, VehicleService>(); // TODO: Fix legacy field references
+// builder.Services.AddScoped<IBookingService, BookingService>(); // TODO: Fix legacy field references
+// builder.Services.AddScoped<IDashboardService, DashboardService>(); // TODO: Fix legacy field references
+builder.Services.AddScoped<IVNPayService, VNPayService>();
+builder.Services.AddScoped<IVietQRService, VietQRService>();
 
 // Role-based Authorization Policies
 builder.Services.AddAuthorization(options =>

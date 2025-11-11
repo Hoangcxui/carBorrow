@@ -1,70 +1,40 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import toast from 'react-hot-toast';
 
-// Mock bookings data
-const mockBookings = [
-  {
-    id: 'BK001',
-    vehicle: {
-      make: 'Toyota',
-      model: 'Camry',
-      year: 2023,
-      image: '/api/placeholder/300/200'
-    },
-    pickupDate: '2024-01-15',
-    dropoffDate: '2024-01-18',
-    pickupTime: '10:00 AM',
-    dropoffTime: '10:00 AM',
-    pickupLocation: 'Downtown Location - 123 Main St',
-    dropoffLocation: 'Airport Terminal - 456 Airport Rd',
-    status: 'confirmed',
-    totalAmount: 180,
-    bookingDate: '2024-01-10'
-  },
-  {
-    id: 'BK002',
-    vehicle: {
-      make: 'Honda',
-      model: 'Civic',
-      year: 2022,
-      image: '/api/placeholder/300/200'
-    },
-    pickupDate: '2024-01-25',
-    dropoffDate: '2024-01-27',
-    pickupTime: '02:00 PM',
-    dropoffTime: '02:00 PM',
-    pickupLocation: 'Mall Location - 789 Shopping Blvd',
-    dropoffLocation: 'Mall Location - 789 Shopping Blvd',
-    status: 'active',
-    totalAmount: 120,
-    bookingDate: '2024-01-20'
-  },
-  {
-    id: 'BK003',
-    vehicle: {
-      make: 'Ford',
-      model: 'Escape',
-      year: 2023,
-      image: '/api/placeholder/300/200'
-    },
-    pickupDate: '2023-12-10',
-    dropoffDate: '2023-12-12',
-    pickupTime: '09:00 AM',
-    dropoffTime: '09:00 AM',
-    pickupLocation: 'Downtown Location - 123 Main St',
-    dropoffLocation: 'Downtown Location - 123 Main St',
-    status: 'completed',
-    totalAmount: 150,
-    bookingDate: '2023-12-05'
-  }
-];
+interface Booking {
+  id: number;
+  vehicleId: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  customerAddress: string;
+  pickupDate: string;
+  dropoffDate: string;
+  pickupTime: string;
+  dropoffTime: string;
+  pickupLocation: string;
+  dropoffLocation: string;
+  totalAmount: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  status: string;
+  specialRequests: string;
+  rating: number | null;
+  review: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 const statusConfig = {
+  pending: {
+    label: 'Đang xử lý',
+    color: 'text-yellow-700 bg-yellow-100 border-yellow-200'
+  },
   confirmed: {
     label: 'Đã xác nhận',
     color: 'text-blue-700 bg-blue-100 border-blue-200'
@@ -83,14 +53,59 @@ const statusConfig = {
   }
 };
 
-export default function UserDashboardPage() {
-  const [selectedBooking, setSelectedBooking] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('bookings');
-  const [bookings] = useState(mockBookings);
+const paymentStatusConfig = {
+  pending: { label: 'Chờ thanh toán', color: 'text-yellow-700 bg-yellow-50' },
+  paid: { label: 'Đã thanh toán', color: 'text-green-700 bg-green-50' },
+  refunded: { label: 'Đã hoàn tiền', color: 'text-blue-700 bg-blue-50' }
+};
 
-  const handleCancelBooking = (bookingId: string) => {
+export default function UserDashboardPage() {
+  const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
+  const [activeTab, setActiveTab] = useState('bookings');
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [customerEmail, setCustomerEmail] = useState<string>('');
+
+  useEffect(() => {
+    loadBookings();
+  }, []);
+
+  const loadBookings = async () => {
+    try {
+      setLoading(true);
+      
+      // Get customer email from localStorage
+      const email = localStorage.getItem('customerEmail');
+      
+      if (!email) {
+        setLoading(false);
+        return;
+      }
+      
+      setCustomerEmail(email);
+
+      // Fetch bookings from API
+      const response = await fetch(`/api/bookings?email=${encodeURIComponent(email)}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch bookings');
+      }
+
+      const data = await response.json();
+      setBookings(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error('Error loading bookings:', error);
+      toast.error('Không thể tải lịch sử đặt xe');
+      setBookings([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelBooking = (bookingId: number) => {
     if (window.confirm('Bạn có chắc chắn muốn hủy đặt xe này?')) {
       toast.success('Đặt xe đã được hủy thành công');
+      // TODO: Call API to cancel booking
     }
   };
 
@@ -180,22 +195,53 @@ export default function UserDashboardPage() {
           {/* Bookings Tab */}
           {activeTab === 'bookings' && (
             <div className="space-y-8">
-              {/* Quick Filters */}
-              <div className="flex flex-wrap gap-3">
-                {['all', 'active', 'confirmed', 'completed'].map(filter => (
-                  <button
-                    key={filter}
-                    className="px-6 py-3 rounded-xl text-sm font-bold border-2 border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-all"
+              {/* Loading State */}
+              {loading && (
+                <div className="bg-white rounded-3xl shadow-lg p-12 text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
+                  <p className="text-gray-600">Đang tải dữ liệu...</p>
+                </div>
+              )}
+
+              {/* Empty State */}
+              {!loading && bookings.length === 0 && (
+                <div className="bg-white rounded-3xl shadow-lg p-12 text-center">
+                  <div className="text-6xl mb-4">🚗</div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Chưa có lịch sử đặt xe</h3>
+                  <p className="text-gray-600 mb-2">
+                    {customerEmail ? 
+                      `Không tìm thấy đặt xe nào cho email: ${customerEmail}` :
+                      'Vui lòng đặt xe để xem lịch sử tại đây'
+                    }
+                  </p>
+                  <Link
+                    href="/"
+                    className="inline-block mt-6 px-8 py-4 bg-gradient-to-r from-primary-600 to-primary-700 text-white rounded-xl font-bold hover:from-primary-700 hover:to-primary-800 transition-all shadow-lg"
                   >
-                    {filter === 'all' ? 'Tất cả đặt xe' : 
-                     filter === 'active' ? 'Đang hoạt động' :
-                     filter === 'confirmed' ? 'Đã xác nhận' : 'Đã hoàn thành'}
-                    <span className="ml-2 text-gray-500 font-semibold">
-                      ({filter === 'all' ? bookings.length : getBookingsByStatus(filter).length})
-                    </span>
-                  </button>
-                ))}
-              </div>
+                    Quay lại tìm xe
+                  </Link>
+                </div>
+              )}
+
+              {/* Quick Filters */}
+              {!loading && bookings.length > 0 && (
+                <>
+                  <div className="flex flex-wrap gap-3">
+                    {['all', 'pending', 'confirmed', 'active', 'completed'].map(filter => (
+                      <button
+                        key={filter}
+                        className="px-6 py-3 rounded-xl text-sm font-bold border-2 border-gray-200 hover:border-primary-500 hover:bg-primary-50 transition-all"
+                      >
+                        {filter === 'all' ? 'Tất cả đặt xe' : 
+                         filter === 'pending' ? 'Đang xử lý' :
+                         filter === 'active' ? 'Đang hoạt động' :
+                         filter === 'confirmed' ? 'Đã xác nhận' : 'Đã hoàn thành'}
+                        <span className="ml-2 text-gray-500 font-semibold">
+                          ({filter === 'all' ? bookings.length : getBookingsByStatus(filter).length})
+                        </span>
+                      </button>
+                    ))}
+                  </div>
 
               {/* Bookings List */}
               <div className="grid grid-cols-1 gap-6">
@@ -213,9 +259,9 @@ export default function UserDashboardPage() {
                           </div>
                           <div>
                             <h3 className="text-2xl font-bold text-gray-900 mb-1">
-                              {booking.vehicle.year} {booking.vehicle.make} {booking.vehicle.model}
+                              Xe ID: {booking.vehicleId}
                             </h3>
-                            <p className="text-sm text-gray-500 font-semibold">ID: {booking.id}</p>
+                            <p className="text-sm text-gray-500 font-semibold">Booking #{booking.id}</p>
                           </div>
                         </div>
                         <div className="flex items-center space-x-4">
@@ -274,6 +320,8 @@ export default function UserDashboardPage() {
                   );
                 })}
               </div>
+                </>
+              )}
             </div>
           )}
 
@@ -311,7 +359,10 @@ export default function UserDashboardPage() {
                 <div className="bg-gray-50 rounded-2xl p-6">
                   <h4 className="font-bold text-gray-900 mb-3 text-lg">Xe</h4>
                   <p className="text-gray-700 font-semibold text-lg">
-                    {selectedBooking.vehicle.year} {selectedBooking.vehicle.make} {selectedBooking.vehicle.model}
+                    Xe ID: {selectedBooking.vehicleId}
+                  </p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Khách hàng: {selectedBooking.customerName}
                   </p>
                 </div>
 

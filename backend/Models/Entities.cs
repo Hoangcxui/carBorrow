@@ -143,26 +143,58 @@ namespace backend.Models
     {
         public int Id { get; set; }
         
-        public int UserId { get; set; }
+        public int? UserId { get; set; }
         public User User { get; set; } = null!;
         
         public int VehicleId { get; set; }
         public Vehicle Vehicle { get; set; } = null!;
         
-        public DateTime StartDate { get; set; }
-        public DateTime EndDate { get; set; }
+        // Customer Information
+        [Required, StringLength(255)]
+        public string CustomerName { get; set; } = string.Empty;
+        
+        [Required, EmailAddress, StringLength(255)]
+        public string CustomerEmail { get; set; } = string.Empty;
+        
+        [Required, StringLength(20)]
+        public string CustomerPhone { get; set; } = string.Empty;
+        
+        [StringLength(500)]
+        public string CustomerAddress { get; set; } = string.Empty;
+        
+        // Booking Details
+        [Required]
+        public DateTime PickupDate { get; set; }
+        
+        [Required]
+        public DateTime DropoffDate { get; set; }
+        
+        [StringLength(10)]
+        public string PickupTime { get; set; } = string.Empty;
+        
+        [StringLength(10)]
+        public string DropoffTime { get; set; } = string.Empty;
         
         [StringLength(255)]
         public string PickupLocation { get; set; } = string.Empty;
         
         [StringLength(255)]
-        public string ReturnLocation { get; set; } = string.Empty;
+        public string DropoffLocation { get; set; } = string.Empty;
         
         [Column(TypeName = "decimal(10,2)")]
-        public decimal TotalCost { get; set; }
+        public decimal TotalAmount { get; set; }
         
         [StringLength(50)]
-        public string Status { get; set; } = "Pending"; // Pending, Confirmed, Active, Completed, Cancelled
+        public string PaymentMethod { get; set; } = string.Empty; // qr, cod, card, transfer
+        
+        [StringLength(50)]
+        public string PaymentStatus { get; set; } = "pending"; // pending, completed, failed
+        
+        [StringLength(50)]
+        public string Status { get; set; } = "pending"; // pending, confirmed, active, completed, cancelled
+        
+        [StringLength(1000)]
+        public string SpecialRequests { get; set; } = string.Empty;
         
         public int? Rating { get; set; }
         
@@ -171,6 +203,38 @@ namespace backend.Models
         
         public DateTime CreatedAt { get; set; }
         public DateTime UpdatedAt { get; set; }
+        
+        public ICollection<Payment> Payments { get; set; } = new List<Payment>();
+    }
+
+    public class Payment
+    {
+        public int Id { get; set; }
+        
+        public int BookingId { get; set; }
+        public Booking Booking { get; set; } = null!;
+        
+        [Required, StringLength(50)]
+        public string PaymentMethod { get; set; } = string.Empty; // QR, Cash, Card, BankTransfer
+        
+        [Column(TypeName = "decimal(10,2)")]
+        public decimal Amount { get; set; }
+        
+        [Required, StringLength(50)]
+        public string PaymentStatus { get; set; } = "Pending"; // Pending, Success, Failed, Cancelled
+        
+        [StringLength(100)]
+        public string TransactionId { get; set; } = string.Empty; // Mã giao dịch từ VNPay/Bank
+        
+        [StringLength(500)]
+        public string QRCodeUrl { get; set; } = string.Empty; // URL hoặc Base64 của QR code
+        
+        [StringLength(1000)]
+        public string PaymentDescription { get; set; } = string.Empty;
+        
+        public DateTime CreatedAt { get; set; }
+        public DateTime? PaidAt { get; set; }
+        public DateTime? ExpiresAt { get; set; } // QR code expiration time
     }
 
     public class RefreshToken

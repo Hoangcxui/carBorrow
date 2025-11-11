@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
+import QRPaymentModal from '@/components/QRPaymentModal';
 import toast from 'react-hot-toast';
 
 // Mock vehicle data
@@ -32,6 +33,8 @@ export default function BookVehiclePage() {
   const params = useParams();
   const router = useRouter();
   
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [createdBooking, setCreatedBooking] = useState<any>(null);
   const [bookingData, setBookingData] = useState({
     pickupLocation: '1',
     dropoffLocation: '1',
@@ -42,7 +45,8 @@ export default function BookVehiclePage() {
     driverAge: '25-64',
     addInsurance: false,
     addGPS: false,
-    addChildSeat: false
+    addChildSeat: false,
+    paymentMethod: 'qr'
   });
 
   const [contactInfo, setContactInfo] = useState({
@@ -116,13 +120,49 @@ export default function BookVehiclePage() {
 
     setIsSubmitting(true);
     
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      toast.success('Đặt xe thành công! Kiểm tra email để xem chi tiết.');
-      router.push('/dashboard');
+      // Create booking payload
+      const bookingPayload = {
+        vehicleId: parseInt(params.id as string) || 1,
+        customerName: `${contactInfo.firstName} ${contactInfo.lastName}`,
+        customerEmail: contactInfo.email,
+        customerPhone: contactInfo.phone,
+        customerAddress: contactInfo.driverLicense, // Using license as address placeholder
+        pickupDate: bookingData.pickupDate,
+        dropoffDate: bookingData.dropoffDate,
+        pickupTime: bookingData.pickupTime,
+        dropoffTime: bookingData.dropoffTime,
+        pickupLocation: pickupLocations.find(loc => loc.id.toString() === bookingData.pickupLocation)?.name || 'Main Office',
+        dropoffLocation: pickupLocations.find(loc => loc.id.toString() === bookingData.dropoffLocation)?.name || 'Main Office',
+        totalAmount: pricing.total,
+        paymentMethod: bookingData.paymentMethod || 'cod',
+        specialRequests: `Insurance: ${bookingData.addInsurance}, GPS: ${bookingData.addGPS}, Child Seat: ${bookingData.addChildSeat}`
+      };
+
+      const response = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bookingPayload)
+      });
+
+      if (!response.ok) {
+        throw new Error('Booking failed');
+      }
+
+      const savedBooking = await response.json();
+      localStorage.setItem('customerEmail', contactInfo.email);
+      setCreatedBooking(savedBooking);
+
+      // Show QR modal for QR payment, otherwise redirect
+      if (bookingData.paymentMethod === 'qr') {
+        setShowQRModal(true);
+      } else {
+        toast.success('Đặt xe thành công! Kiểm tra email để xem chi tiết.');
+        setTimeout(() => router.push('/dashboard'), 2000);
+      }
     } catch (error) {
       toast.error('Đặt xe thất bại. Vui lòng thử lại.');
+      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -486,71 +526,96 @@ export default function BookVehiclePage() {
                   <div className="bg-white rounded-lg shadow-sm p-6">
                     <h2 className="text-xl font-semibold text-gray-900 mb-6">Phương thức thanh toán</h2>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Số thẻ
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="1234 5678 9012 3456"
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
+                    <div className="grid grid-cols-1 gap-4">
+                      {/* QR Payment */}
+                      <div
+                        className="border-2 border-primary-500 bg-primary-50 rounded-lg p-5 cursor-pointer transition-all shadow-md"
+                      >
+                        <div className="flex items-start">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="qr"
+                            checked={true}
+                            readOnly
+                            className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 mr-4 mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center mb-2">
+                              <svg className="h-6 w-6 text-primary-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                              </svg>
+                              <span className="font-semibold text-gray-900 text-lg">Thanh toán QR</span>
+                              <span className="ml-3 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
+                                Phổ biến
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 ml-9">VietQR / VNPay - Thanh toán nhanh chóng</p>
+                          </div>
+                        </div>
                       </div>
 
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Tên chủ thẻ
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="Nguyễn Văn A"
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Ngày hết hạn
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="MM/YY"
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          CVV
-                        </label>
-                        <input
-                          type="text"
-                          placeholder="123"
-                          className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        />
+                      {/* COD Payment */}
+                      <div
+                        className="border-2 border-gray-200 hover:border-gray-300 hover:shadow-sm rounded-lg p-5 cursor-pointer transition-all"
+                      >
+                        <div className="flex items-start">
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="cod"
+                            className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 mr-4 mt-1"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center mb-2">
+                              <svg className="h-6 w-6 text-primary-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              <span className="font-semibold text-gray-900 text-lg">Thanh toán khi lấy xe</span>
+                              <span className="ml-3 px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full font-medium">
+                                Phổ biến
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600 ml-9">Thanh toán bằng tiền mặt khi nhận xe</p>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Terms & Conditions */}
-                    <div className="mt-6">
+                    <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
                       <div className="flex items-start">
-                        <input
-                          type="checkbox"
-                          className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
-                        />
-                        <div className="ml-3">
-                          <label className="text-sm text-gray-700">
-                            Tôi đồng ý với{' '}
-                            <Link href="/terms" className="text-primary-600 hover:text-primary-700">
-                              Điều khoản và Điều kiện
-                            </Link>{' '}
-                            và{' '}
-                            <Link href="/privacy" className="text-primary-600 hover:text-primary-700">
-                              Chính sách Bảo mật
-                            </Link>
-                          </label>
+                        <svg className="h-5 w-5 text-blue-600 mr-3 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="text-sm text-blue-800">
+                          <p className="font-medium mb-1">Lưu ý thanh toán:</p>
+                          <ul className="list-disc list-inside space-y-1 text-blue-700">
+                            <li><strong>Thanh toán QR:</strong> Quét mã QR và chuyển khoản ngay, đơn sẽ được xác nhận trong 5-10 phút</li>
+                            <li><strong>Thanh toán khi lấy xe:</strong> Thanh toán bằng tiền mặt hoặc thẻ khi nhận xe tại địa điểm</li>
+                          </ul>
                         </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Terms & Conditions */}
+                  <div className="bg-white rounded-lg shadow-sm p-6">
+                    <div className="flex items-start">
+                      <input
+                        type="checkbox"
+                        className="mt-1 h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                      />
+                      <div className="ml-3">
+                        <label className="text-sm text-gray-700">
+                          Tôi đồng ý với{' '}
+                          <Link href="/terms" className="text-primary-600 hover:text-primary-700">
+                            Điều khoản và Điều kiện
+                          </Link>{' '}
+                          và{' '}
+                          <Link href="/privacy" className="text-primary-600 hover:text-primary-700">
+                            Chính sách Bảo mật
+                          </Link>
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -658,6 +723,18 @@ export default function BookVehiclePage() {
       </div>
 
       <Footer />
+
+      {/* QR Payment Modal */}
+      <QRPaymentModal 
+        isOpen={showQRModal}
+        onClose={() => {
+          setShowQRModal(false);
+          router.push('/dashboard');
+        }}
+        bookingId={createdBooking?.bookingId || 0}
+        amount={pricing.total}
+        customerEmail={contactInfo.email}
+      />
     </>
   );
 }
