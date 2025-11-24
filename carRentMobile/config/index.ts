@@ -1,6 +1,11 @@
+import { Platform } from 'react-native';
+
 const config = {
   // API Configuration
-  API_BASE_URL: 'http://localhost:5000',
+  // Sử dụng địa chỉ IP của máy tính cho mobile, localhost cho web
+  API_BASE_URL: Platform.OS === 'web' 
+    ? 'http://localhost:5000' 
+    : (__DEV__ ? 'http://10.21.3.234:5000' : 'https://your-production-api.com'),
   API_TIMEOUT: 10000,
   
   // Authentication

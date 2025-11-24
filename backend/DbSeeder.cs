@@ -8,8 +8,6 @@ namespace backend.Services
     {
         public static async Task SeedAsync(CarRentalDbContext context)
         {
-            // For InMemory database, no need to ensure creation
-
             // Seed Roles
             if (!await context.Roles.AnyAsync())
             {
@@ -50,19 +48,21 @@ namespace backend.Services
                 var categories = new[]
                 {
                     new Category { Name = "Economy", Description = "Budget-friendly vehicles" },
-                    new Category { Name = "Compact", Description = "Small, efficient cars" },
-                    new Category { Name = "SUV", Description = "Sport Utility Vehicles" },
-                    new Category { Name = "Luxury", Description = "High-end luxury vehicles" }
+                    new Category { Name = "Sedan", Description = "Comfortable family cars" },
+                    new Category { Name = "SUV", Description = "Spacious utility vehicles" },
+                    new Category { Name = "Luxury", Description = "Premium vehicles" },
+                    new Category { Name = "Van", Description = "Large passenger vehicles" }
                 };
 
                 await context.Categories.AddRangeAsync(categories);
                 await context.SaveChangesAsync();
             }
 
-            // Seed Sample Vehicles
+            // Seed Vehicles
             if (!await context.Vehicles.AnyAsync())
             {
                 var economyCategory = await context.Categories.FirstAsync(c => c.Name == "Economy");
+                var sedanCategory = await context.Categories.FirstAsync(c => c.Name == "Sedan");
                 var suvCategory = await context.Categories.FirstAsync(c => c.Name == "SUV");
 
                 var vehicles = new[]
@@ -70,11 +70,18 @@ namespace backend.Services
                     new Vehicle
                     {
                         Make = "Toyota",
-                        Model = "Camry",
-                        Year = 2022,
+                        Model = "Vios",
+                        Year = 2023,
                         Color = "White",
-                        LicensePlate = "ABC-123",
-                        DailyRate = 50.00m,
+                        LicensePlate = "51A-12345",
+                        DailyRate = 500000,
+                        Seats = 5,
+                        Transmission = "Automatic",
+                        FuelType = "Gasoline",
+                        Mileage = 15000,
+                        Features = "Air conditioning, Bluetooth, GPS",
+                        Description = "Reliable and fuel-efficient sedan",
+                        ImageUrl = "/images/toyota-vios.jpg",
                         Status = "Available",
                         CategoryId = economyCategory.Id,
                         CreatedAt = DateTime.UtcNow
@@ -82,11 +89,37 @@ namespace backend.Services
                     new Vehicle
                     {
                         Make = "Honda",
-                        Model = "CR-V",
+                        Model = "City",
                         Year = 2023,
+                        Color = "Silver",
+                        LicensePlate = "51B-67890",
+                        DailyRate = 550000,
+                        Seats = 5,
+                        Transmission = "Automatic",
+                        FuelType = "Gasoline",
+                        Mileage = 12000,
+                        Features = "Air conditioning, Bluetooth, GPS, Backup camera",
+                        Description = "Modern and stylish sedan",
+                        ImageUrl = "/images/honda-city.jpg",
+                        Status = "Available",
+                        CategoryId = sedanCategory.Id,
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new Vehicle
+                    {
+                        Make = "Toyota",
+                        Model = "Fortuner",
+                        Year = 2022,
                         Color = "Black",
-                        LicensePlate = "XYZ-789",
-                        DailyRate = 75.00m,
+                        LicensePlate = "51C-11111",
+                        DailyRate = 1200000,
+                        Seats = 7,
+                        Transmission = "Automatic",
+                        FuelType = "Diesel",
+                        Mileage = 25000,
+                        Features = "4WD, Air conditioning, Leather seats, GPS, Parking sensors",
+                        Description = "Powerful and spacious SUV",
+                        ImageUrl = "/images/toyota-fortuner.jpg",
                         Status = "Available",
                         CategoryId = suvCategory.Id,
                         CreatedAt = DateTime.UtcNow
@@ -94,6 +127,61 @@ namespace backend.Services
                 };
 
                 await context.Vehicles.AddRangeAsync(vehicles);
+                await context.SaveChangesAsync();
+            }
+
+            // Seed Locations (4 cơ sở HUFLIT)
+            if (!await context.Locations.AnyAsync())
+            {
+                var locations = new[]
+                {
+                    new Location
+                    {
+                        Name = "HUFLIT - Cơ sở 1 (Đinh Tiên Hoàng)",
+                        Address = "71 Đinh Tiên Hoàng, Phường Đa Kao, Quận 1, TP.HCM",
+                        Latitude = 10.7888,
+                        Longitude = 106.6951,
+                        PhoneNumber = "028 3822 2122",
+                        Description = "Cơ sở chính - Trụ sở Hành chính",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new Location
+                    {
+                        Name = "HUFLIT - Cơ sở 2 (Nguyễn Thị Minh Khai)",
+                        Address = "60 Nguyễn Thị Minh Khai, Phường 6, Quận 3, TP.HCM",
+                        Latitude = 10.7769,
+                        Longitude = 106.6878,
+                        PhoneNumber = "028 3930 0124",
+                        Description = "Khu học tập và thực hành",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new Location
+                    {
+                        Name = "HUFLIT - Cơ sở 3 (Trần Quang Khải)",
+                        Address = "252 Trần Quang Khải, Phường Tân Định, Quận 1, TP.HCM",
+                        Latitude = 10.7893,
+                        Longitude = 106.6918,
+                        PhoneNumber = "028 3822 7575",
+                        Description = "Khu giảng đường và phòng lab",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    },
+                    new Location
+                    {
+                        Name = "HUFLIT - Cơ sở 4 (Pasteur)",
+                        Address = "98 Pasteur, Phường Nguyễn Thái Bình, Quận 1, TP.HCM",
+                        Latitude = 10.7794,
+                        Longitude = 106.6947,
+                        PhoneNumber = "028 3824 9999",
+                        Description = "Khu ký túc xá và hoạt động sinh viên",
+                        IsActive = true,
+                        CreatedAt = DateTime.UtcNow
+                    }
+                };
+
+                await context.Locations.AddRangeAsync(locations);
                 await context.SaveChangesAsync();
             }
         }

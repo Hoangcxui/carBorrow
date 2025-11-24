@@ -1,7 +1,8 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import StorageService from './StorageService';
+import config from '../config';
 
-const BASE_URL = 'http://localhost:5000'; // Thay đổi theo địa chỉ backend của bạn
+const BASE_URL = config.API_BASE_URL;
 
 class ApiService {
   private api: AxiosInstance;
@@ -19,7 +20,7 @@ class ApiService {
     this.api.interceptors.request.use(
       async (config) => {
         try {
-          const token = await SecureStore.getItemAsync('accessToken');
+          const token = await StorageService.getItem('accessToken');
           if (token) {
             config.headers.Authorization = `Bearer ${token}`;
           }
@@ -48,15 +49,15 @@ class ApiService {
 
   private async refreshToken(): Promise<void> {
     try {
-      const refreshToken = await SecureStore.getItemAsync('refreshToken');
+      const refreshToken = await StorageService.getItem('refreshToken');
       if (refreshToken) {
         const response = await axios.post(`${BASE_URL}/api/auth/refresh`, {
           refreshToken,
         });
         
         if (response.data.success) {
-          await SecureStore.setItemAsync('accessToken', response.data.data.token);
-          await SecureStore.setItemAsync('refreshToken', response.data.data.refreshToken);
+          await StorageService.setItem('accessToken', response.data.data.token);
+          await StorageService.setItem('refreshToken', response.data.data.refreshToken);
         }
       }
     } catch (error) {
@@ -66,8 +67,8 @@ class ApiService {
   }
 
   async clearTokens(): Promise<void> {
-    await SecureStore.deleteItemAsync('accessToken');
-    await SecureStore.deleteItemAsync('refreshToken');
+    await StorageService.removeItem('accessToken');
+    await StorageService.removeItem('refreshToken');
   }
 
   // Generic API methods

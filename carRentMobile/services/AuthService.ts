@@ -1,59 +1,61 @@
-import ApiService from './ApiService';
-import * as SecureStore from 'expo-secure-store';
+import AuthApiService from './AuthApiService';
+import StorageService from './StorageService';
 import { LoginDto, RegisterDto, AuthResult, ApiResponse } from '../types';
 
 export class AuthService {
   async login(loginDto: LoginDto): Promise<AuthResult> {
     try {
-      const response = await ApiService.post<ApiResponse<AuthResult>>('/api/auth/login', loginDto);
+      const response = await AuthApiService.login(loginDto.email, loginDto.password);
       
-      if (response.data.success && response.data.data) {
+      if (response.success && response.data) {
         // Store tokens securely
-        await SecureStore.setItemAsync('accessToken', response.data.data.token);
-        await SecureStore.setItemAsync('refreshToken', response.data.data.refreshToken);
+        await StorageService.setItem('accessToken', response.data.token);
+        await StorageService.setItem('refreshToken', response.data.refreshToken);
         
-        return response.data.data;
+        return response.data;
       }
       
-      throw new Error(response.data.message || 'Login failed');
+      throw new Error(response.message || 'Login failed');
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Network error');
+      throw new Error(error.message || 'Network error');
     }
   }
 
   async register(registerDto: RegisterDto): Promise<AuthResult> {
     try {
-      const response = await ApiService.post<ApiResponse<AuthResult>>('/api/auth/register', registerDto);
+      const response = await AuthApiService.register({
+        email: registerDto.email,
+        password: registerDto.password,
+        fullName: registerDto.fullName,
+        phoneNumber: registerDto.phoneNumber || ''
+      });
       
-      if (response.data.success && response.data.data) {
+      if (response.success && response.data) {
         // Store tokens securely
-        await SecureStore.setItemAsync('accessToken', response.data.data.token);
-        await SecureStore.setItemAsync('refreshToken', response.data.data.refreshToken);
+        await StorageService.setItem('accessToken', response.data.token);
+        await StorageService.setItem('refreshToken', response.data.refreshToken);
         
-        return response.data.data;
+        return response.data;
       }
       
-      throw new Error(response.data.message || 'Registration failed');
+      throw new Error(response.message || 'Registration failed');
     } catch (error: any) {
-      throw new Error(error.response?.data?.message || 'Network error');
+      throw new Error(error.message || 'Network error');
     }
   }
 
   async logout(): Promise<void> {
     try {
-      await ApiService.post('/api/auth/logout');
+      await AuthApiService.logout();
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
-      // Clear stored tokens
-      await ApiService.clearTokens();
     }
   }
 
   async getCurrentUser(): Promise<any> {
     try {
-      const response = await ApiService.get<ApiResponse>('/api/auth/me');
-      return response.data.data;
+      const response = await AuthApiService.getCurrentUser();
+      return response.data;
     } catch (error) {
       throw error;
     }
@@ -61,7 +63,7 @@ export class AuthService {
 
   async isLoggedIn(): Promise<boolean> {
     try {
-      const token = await SecureStore.getItemAsync('accessToken');
+      const token = await StorageService.getItem('accessToken');
       return !!token;
     } catch (error) {
       return false;

@@ -96,6 +96,13 @@ const features: Feature[] = [
     description: 'Trò chuyện trực tiếp với nhân viên hỗ trợ',
     icon: 'chat',
     status: 'planned'
+  },
+  {
+    title: 'Test Backend Connection',
+    description: 'Kiểm tra kết nối với backend API',
+    icon: 'cloud-done',
+    route: '/test-connection',
+    status: 'completed'
   }
 ];
 

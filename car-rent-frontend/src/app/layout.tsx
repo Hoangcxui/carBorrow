@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
+import FloatingChatBox from '@/components/FloatingChatBox';
 import '@/styles/globals.css';
 
 export const metadata: Metadata = {
@@ -19,6 +20,7 @@ export default function RootLayout({
       <body>
         <AuthProvider>
           {children}
+          <FloatingChatBox />
           <Toaster 
             position="top-right"
             toastOptions={{

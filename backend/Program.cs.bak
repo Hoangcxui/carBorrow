@@ -198,7 +198,7 @@ using (var scope = app.Services.CreateScope())
         // await context.Database.EnsureCreatedAsync(); // Creates DB from current DbContext schema
         
         logger.LogInformation("Database setup skipped (SQL Server not available). Starting seeding...");
-        await DbSeeder.SeedAsync(context);
+        // await DbSeeder.SeedAsync(context);
         logger.LogInformation("Database seeding skipped.");
     }
     catch (Exception ex)
