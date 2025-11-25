@@ -19,7 +19,7 @@ class VehicleApiService {
   }) {
     try {
       const queryString = params ? this.buildQueryString(params) : '';
-      const response = await ApiService.get(`/api/vehicles${queryString}`);
+      const response = await ApiService.get(`/api/vehicle${queryString}`);
       return response.data;
     } catch (error: any) {
       throw this.handleError(error);
@@ -31,7 +31,7 @@ class VehicleApiService {
    */
   async getVehicleById(id: number) {
     try {
-      const response = await ApiService.get(`/api/vehicles/${id}`);
+      const response = await ApiService.get(`/api/vehicle/${id}`);
       return response.data;
     } catch (error: any) {
       throw this.handleError(error);
@@ -43,7 +43,7 @@ class VehicleApiService {
    */
   async getCategories() {
     try {
-      const response = await ApiService.get('/api/categories');
+      const response = await ApiService.get('/api/vehicle/categories');
       return response.data;
     } catch (error: any) {
       throw this.handleError(error);
@@ -55,7 +55,7 @@ class VehicleApiService {
    */
   async checkAvailability(vehicleId: number, startDate: string, endDate: string) {
     try {
-      const response = await ApiService.post('/api/vehicles/check-availability', {
+      const response = await ApiService.post('/api/vehicle/check-availability', {
         vehicleId,
         startDate,
         endDate
@@ -71,7 +71,7 @@ class VehicleApiService {
    */
   async getFeaturedVehicles() {
     try {
-      const response = await ApiService.get('/api/vehicles/featured');
+      const response = await ApiService.get('/api/vehicle/featured');
       return response.data;
     } catch (error: any) {
       throw this.handleError(error);

@@ -2,11 +2,13 @@ import { Platform } from 'react-native';
 
 const config = {
   // API Configuration
-  // Sử dụng địa chỉ IP của máy tính cho mobile, localhost cho web
+  // Web: localhost
+  // LDPlayer & Physical device: 192.168.1.163
+  // Android Studio Emulator: 10.0.2.2
   API_BASE_URL: Platform.OS === 'web' 
-    ? 'http://localhost:5000' 
-    : (__DEV__ ? 'http://10.21.3.234:5000' : 'https://your-production-api.com'),
-  API_TIMEOUT: 10000,
+    ? 'http://localhost:5001' 
+    : (__DEV__ ? 'http://192.168.1.163:5001' : 'https://your-production-api.com'),
+  API_TIMEOUT: 30000,
   
   // Authentication
   TOKEN_STORAGE_KEY: 'accessToken',

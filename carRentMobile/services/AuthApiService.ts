@@ -20,7 +20,17 @@ class AuthApiService {
         email,
         password
       });
-      return response.data as ApiResponse;
+      
+      // Backend returns: { message, accessToken, refreshToken }
+      // Convert to ApiResponse format
+      return {
+        success: true,
+        message: response.data.message,
+        data: {
+          accessToken: response.data.accessToken,
+          refreshToken: response.data.refreshToken
+        }
+      };
     } catch (error: any) {
       throw this.handleError(error);
     }

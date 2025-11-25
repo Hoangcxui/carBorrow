@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Vehicle } from '@/types';
-import VehicleService, { VehicleSearchParams } from '@/services/VehicleService';
+import VehicleApiService from '@/services/VehicleApiService';
 import SearchFilters, { VehicleFilters } from '@/components/SearchFilters';
 import HeartButton from '@/components/HeartButton';
 
@@ -32,9 +32,9 @@ export default function VehiclesScreen() {
     try {
       setIsLoading(true);
       
-      const params: VehicleSearchParams = {
+      const params: any = {
         page: 1,
-        limit: 50,
+        pageSize: 50,
         ...appliedFilters,
       };
 
@@ -42,10 +42,10 @@ export default function VehiclesScreen() {
         params.search = searchTerm;
       }
 
-      const data = await VehicleService.getVehicles(params);
-      setVehicles(data);
+      const response = await VehicleApiService.getVehicles(params);
+      setVehicles(response.data || []);
     } catch (error: any) {
-      Alert.alert('Lỗi', error.message);
+      Alert.alert('Lỗi', error.message || 'Failed to fetch vehicles');
     } finally {
       setIsLoading(false);
     }
@@ -93,7 +93,7 @@ export default function VehiclesScreen() {
         <Text style={styles.vehicleDetails}>Biển số: {item.licensePlate}</Text>
         <Text style={styles.vehicleDetails}>Màu: {item.color}</Text>
         <Text style={styles.vehiclePrice}>
-          {item.pricePerDay.toLocaleString('vi-VN')} VNĐ/ngày
+          {(item.dailyRate || 0).toLocaleString('vi-VN')} VNĐ/ngày
         </Text>
         <View style={[
           styles.statusBadge,

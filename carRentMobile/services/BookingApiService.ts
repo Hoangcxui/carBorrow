@@ -6,16 +6,16 @@ import ApiService from './ApiService';
  */
 class BookingApiService {
   /**
-   * Get all bookings for current user
+   * Get all bookings for current user by email
    */
-  async getMyBookings(params?: {
+  async getMyBookings(email: string, params?: {
     status?: string;
     page?: number;
     pageSize?: number;
   }) {
     try {
       const queryString = params ? this.buildQueryString(params) : '';
-      const response = await ApiService.get(`/api/booking/my-bookings${queryString}`);
+      const response = await ApiService.get(`/api/booking/customer/${email}${queryString}`);
       return response.data;
     } catch (error: any) {
       throw this.handleError(error);
@@ -39,11 +39,21 @@ class BookingApiService {
    */
   async createBooking(data: {
     vehicleId: number;
-    startDate: string;
-    endDate: string;
+    customerName: string;
+    customerEmail: string;
+    customerPhone: string;
+    customerAddress?: string;
+    pickupDate: string;
+    dropoffDate: string;
+    pickupTime?: string;
+    dropoffTime?: string;
+    pickupLocationId?: number;
+    dropoffLocationId?: number;
     pickupLocation?: string;
     dropoffLocation?: string;
-    notes?: string;
+    totalAmount: number;
+    paymentMethod?: string;
+    specialRequests?: string;
   }) {
     try {
       const response = await ApiService.post('/api/booking', data);
@@ -54,17 +64,14 @@ class BookingApiService {
   }
 
   /**
-   * Update booking
+   * Update booking status
    */
-  async updateBooking(id: number, data: {
-    startDate?: string;
-    endDate?: string;
-    pickupLocation?: string;
-    dropoffLocation?: string;
-    notes?: string;
+  async updateBookingStatus(id: number, data: {
+    status?: string;
+    paymentStatus?: string;
   }) {
     try {
-      const response = await ApiService.put(`/api/booking/${id}`, data);
+      const response = await ApiService.put(`/api/booking/${id}/status`, data);
       return response.data;
     } catch (error: any) {
       throw this.handleError(error);
@@ -76,51 +83,7 @@ class BookingApiService {
    */
   async cancelBooking(id: number, reason?: string) {
     try {
-      const response = await ApiService.post(`/api/booking/${id}/cancel`, { reason });
-      return response.data;
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Calculate booking price
-   */
-  async calculatePrice(vehicleId: number, startDate: string, endDate: string) {
-    try {
-      const response = await ApiService.post('/api/booking/calculate-price', {
-        vehicleId,
-        startDate,
-        endDate
-      });
-      return response.data;
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Confirm booking pickup
-   */
-  async confirmPickup(id: number) {
-    try {
-      const response = await ApiService.post(`/api/booking/${id}/pickup`);
-      return response.data;
-    } catch (error: any) {
-      throw this.handleError(error);
-    }
-  }
-
-  /**
-   * Confirm booking return
-   */
-  async confirmReturn(id: number, data?: {
-    actualReturnDate?: string;
-    condition?: string;
-    notes?: string;
-  }) {
-    try {
-      const response = await ApiService.post(`/api/booking/${id}/return`, data);
+      const response = await ApiService.put(`/api/booking/${id}/cancel`, { reason });
       return response.data;
     } catch (error: any) {
       throw this.handleError(error);

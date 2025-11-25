@@ -7,28 +7,57 @@ import {
   TouchableOpacity,
   Alert,
   RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Booking } from '@/types';
-import BookingService from '@/services/BookingService';
+import { BookingApiService } from '@/services';
+import { useAuth } from '@/contexts/AuthContext';
+
+interface Booking {
+  id: number;
+  vehicleId: number;
+  customerName: string;
+  customerEmail: string;
+  customerPhone: string;
+  pickupDate: string;
+  dropoffDate: string;
+  pickupTime: string;
+  dropoffTime: string;
+  pickupLocationId: number;
+  dropoffLocationId: number;
+  totalAmount: number;
+  paymentMethod: string;
+  status: string;
+  paymentStatus: string;
+  createdAt: string;
+}
 
 export default function BookingsScreen() {
   const router = useRouter();
+  const { user } = useAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   useEffect(() => {
-    loadBookings();
-  }, []);
+    if (user?.email) {
+      loadBookings();
+    }
+  }, [user]);
 
   const loadBookings = async () => {
+    if (!user?.email) {
+      Alert.alert('Lỗi', 'Vui lòng đăng nhập để xem booking');
+      return;
+    }
+
     try {
       setIsLoading(true);
-      const data = await BookingService.getMyBookings();
-      setBookings(data);
+      const data = await BookingApiService.getMyBookings(user.email);
+      setBookings(Array.isArray(data) ? data : []);
     } catch (error: any) {
       Alert.alert('Lỗi', error.message);
+      setBookings([]);
     } finally {
       setIsLoading(false);
     }
@@ -40,7 +69,7 @@ export default function BookingsScreen() {
     setIsRefreshing(false);
   };
 
-  const handleCancelBooking = (bookingId: string) => {
+  const handleCancelBooking = (bookingId: number) => {
     Alert.alert(
       'Hủy đặt xe',
       'Bạn có chắc chắn muốn hủy đặt xe này?',
@@ -51,7 +80,7 @@ export default function BookingsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await BookingService.cancelBooking(bookingId);
+              await BookingApiService.cancelBooking(bookingId);
               Alert.alert('Thành công', 'Đã hủy đặt xe');
               loadBookings();
             } catch (error: any) {
@@ -63,97 +92,113 @@ export default function BookingsScreen() {
     );
   };
 
-  const getStatusStyle = (status: string) => {
-    switch (status) {
-      case 'Pending':
-        return { backgroundColor: '#fef3c7', color: '#92400e' };
-      case 'Confirmed':
-        return { backgroundColor: '#dbeafe', color: '#1e40af' };
-      case 'InProgress':
-        return { backgroundColor: '#d1fae5', color: '#065f46' };
-      case 'Completed':
-        return { backgroundColor: '#e5e7eb', color: '#374151' };
-      case 'Cancelled':
-        return { backgroundColor: '#fee2e2', color: '#991b1b' };
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return { bg: '#fef3c7', text: '#92400e' };
+      case 'confirmed':
+        return { bg: '#dbeafe', text: '#1e40af' };
+      case 'active':
+      case 'in-progress':
+        return { bg: '#d1fae5', text: '#065f46' };
+      case 'completed':
+        return { bg: '#e5e7eb', text: '#374151' };
+      case 'cancelled':
+        return { bg: '#fee2e2', text: '#991b1b' };
       default:
-        return { backgroundColor: '#f3f4f6', color: '#6b7280' };
+        return { bg: '#f3f4f6', text: '#6b7280' };
     }
   };
 
   const getStatusText = (status: string) => {
-    switch (status) {
-      case 'Pending':
+    switch (status.toLowerCase()) {
+      case 'pending':
         return 'Chờ xác nhận';
-      case 'Confirmed':
+      case 'confirmed':
         return 'Đã xác nhận';
-      case 'InProgress':
+      case 'active':
+      case 'in-progress':
         return 'Đang thuê';
-      case 'Completed':
+      case 'completed':
         return 'Hoàn thành';
-      case 'Cancelled':
+      case 'cancelled':
         return 'Đã hủy';
       default:
         return status;
     }
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('vi-VN');
+    } catch {
+      return dateString;
+    }
+  };
+
   const renderBooking = ({ item }: { item: Booking }) => {
-    const statusStyle = getStatusStyle(item.status);
-    
+    const statusColor = getStatusColor(item.status);
+    const canCancel = item.status.toLowerCase() === 'pending';
+
     return (
       <View style={styles.bookingCard}>
         <View style={styles.bookingHeader}>
-          <Text style={styles.vehicleTitle}>
-            {item.vehicle?.make} {item.vehicle?.model}
-          </Text>
-          <View style={[styles.statusBadge, { backgroundColor: statusStyle.backgroundColor }]}>
-            <Text style={[styles.statusText, { color: statusStyle.color }]}>
+          <Text style={styles.bookingId}>Booking #{item.id}</Text>
+          <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
+            <Text style={[styles.statusText, { color: statusColor.text }]}>
               {getStatusText(item.status)}
             </Text>
           </View>
         </View>
-        
-        <Text style={styles.licensePlate}>Biển số: {item.vehicle?.licensePlate}</Text>
-        
-        <View style={styles.dateRow}>
-          <Text style={styles.dateLabel}>Từ:</Text>
-          <Text style={styles.dateValue}>
-            {new Date(item.startDate).toLocaleDateString('vi-VN')}
-          </Text>
+
+        <View style={styles.bookingInfo}>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>📅 Ngày nhận:</Text>
+            <Text style={styles.infoValue}>
+              {formatDate(item.pickupDate)} {item.pickupTime}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>📅 Ngày trả:</Text>
+            <Text style={styles.infoValue}>
+              {formatDate(item.dropoffDate)} {item.dropoffTime}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>💰 Tổng tiền:</Text>
+            <Text style={styles.infoPrice}>
+              {item.totalAmount.toLocaleString('vi-VN')} VNĐ
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>💳 Thanh toán:</Text>
+            <Text style={styles.infoValue}>
+              {item.paymentMethod === 'qr' ? 'Chuyển khoản' : 'Tiền mặt'}
+            </Text>
+          </View>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>📊 TT thanh toán:</Text>
+            <Text style={[styles.infoValue, { color: item.paymentStatus === 'paid' ? '#059669' : '#f59e0b' }]}>
+              {item.paymentStatus === 'paid' ? 'Đã thanh toán' : 'Chưa thanh toán'}
+            </Text>
+          </View>
         </View>
-        
-        <View style={styles.dateRow}>
-          <Text style={styles.dateLabel}>Đến:</Text>
-          <Text style={styles.dateValue}>
-            {new Date(item.endDate).toLocaleDateString('vi-VN')}
-          </Text>
-        </View>
-        
-        <View style={styles.amountRow}>
-          <Text style={styles.amountLabel}>Tổng tiền:</Text>
-          <Text style={styles.amountValue}>
-            {item.totalAmount.toLocaleString('vi-VN')} VNĐ
-          </Text>
-        </View>
-        
-        {item.notes && (
-          <Text style={styles.notes}>Ghi chú: {item.notes}</Text>
-        )}
-        
-        <View style={styles.actionRow}>
-          <TouchableOpacity 
+
+        <View style={styles.bookingActions}>
+          <TouchableOpacity
             style={styles.detailButton}
-            onPress={() => router.push(`/booking/${item.id}`)}
+            onPress={() => router.push(`/booking/${item.id}` as any)}
           >
-            <Text style={styles.detailButtonText}>Chi tiết</Text>
+            <Text style={styles.detailButtonText}>Xem chi tiết</Text>
           </TouchableOpacity>
           
-          {item.status === 'Pending' && (
-            <TouchableOpacity 
+          {canCancel && (
+            <TouchableOpacity
               style={styles.cancelButton}
               onPress={() => handleCancelBooking(item.id)}
             >
-              <Text style={styles.cancelButtonText}>Hủy đặt</Text>
+              <Text style={styles.cancelButtonText}>Hủy booking</Text>
             </TouchableOpacity>
           )}
         </View>
@@ -161,39 +206,52 @@ export default function BookingsScreen() {
     );
   };
 
+  const renderEmpty = () => (
+    <View style={styles.emptyContainer}>
+      <Text style={styles.emptyIcon}>🚗</Text>
+      <Text style={styles.emptyTitle}>Chưa có booking nào</Text>
+      <Text style={styles.emptyText}>
+        Hãy chọn xe bạn thích và đặt xe ngay!
+      </Text>
+      <TouchableOpacity
+        style={styles.browseButton}
+        onPress={() => router.push('/vehicles' as any)}
+      >
+        <Text style={styles.browseButtonText}>Xem danh sách xe</Text>
+      </TouchableOpacity>
+    </View>
+  );
+
+  if (isLoading && bookings.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b82f6" />
+        <Text style={styles.loadingText}>Đang tải booking...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Đặt xe của tôi</Text>
+        <Text style={styles.headerTitle}>Booking của tôi</Text>
       </View>
 
       <FlatList
         data={bookings}
         renderItem={renderBooking}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.list}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={[
+          styles.listContainer,
+          bookings.length === 0 && styles.listContainerEmpty
+        ]}
+        ListEmptyComponent={renderEmpty}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>
-              {isLoading ? 'Đang tải...' : 'Chưa có đặt xe nào'}
-            </Text>
-            {!isLoading && (
-              <>
-                <Text style={styles.emptyDescription}>
-                  Bạn chưa có đặt xe nào. Hãy chọn xe yêu thích và đặt ngay!
-                </Text>
-                <TouchableOpacity 
-                  style={styles.createButton} 
-                  onPress={() => router.push('/vehicles')}
-                >
-                  <Text style={styles.createButtonText}>Xem danh sách xe</Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={onRefresh}
+            colors={['#3b82f6']}
+          />
         }
       />
     </View>
@@ -205,23 +263,37 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f8f9fa',
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: '#6b7280',
+  },
   header: {
     backgroundColor: 'white',
-    padding: 16,
-    paddingTop: 60,
+    paddingTop: 50,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  title: {
+  headerTitle: {
     fontSize: 24,
     fontWeight: 'bold',
     color: '#1f2937',
   },
-  list: {
+  listContainer: {
     padding: 16,
+  },
+  listContainerEmpty: {
+    flexGrow: 1,
   },
   bookingCard: {
     backgroundColor: 'white',
@@ -231,83 +303,68 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowRadius: 4,
+    elevation: 3,
   },
   bookingHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
   },
-  vehicleTitle: {
-    fontSize: 18,
+  bookingId: {
+    fontSize: 16,
     fontWeight: 'bold',
     color: '#1f2937',
-    flex: 1,
   },
   statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 12,
   },
   statusText: {
     fontSize: 12,
     fontWeight: '600',
   },
-  licensePlate: {
-    fontSize: 14,
-    color: '#6b7280',
+  bookingInfo: {
     marginBottom: 12,
   },
-  dateRow: {
+  infoRow: {
     flexDirection: 'row',
-    marginBottom: 4,
+    justifyContent: 'space-between',
+    paddingVertical: 6,
   },
-  dateLabel: {
+  infoLabel: {
     fontSize: 14,
     color: '#6b7280',
-    width: 40,
+    flex: 1,
   },
-  dateValue: {
+  infoValue: {
     fontSize: 14,
     color: '#1f2937',
     fontWeight: '500',
+    flex: 1,
+    textAlign: 'right',
   },
-  amountRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  amountLabel: {
-    fontSize: 16,
-    color: '#374151',
-    fontWeight: '600',
-  },
-  amountValue: {
+  infoPrice: {
     fontSize: 16,
     color: '#059669',
     fontWeight: 'bold',
+    flex: 1,
+    textAlign: 'right',
   },
-  notes: {
-    fontSize: 14,
-    color: '#6b7280',
-    fontStyle: 'italic',
-    marginTop: 8,
-    marginBottom: 8,
-  },
-  actionRow: {
+  bookingActions: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 12,
     gap: 8,
   },
   detailButton: {
     flex: 1,
     backgroundColor: '#3b82f6',
-    padding: 12,
     borderRadius: 8,
+    padding: 12,
     alignItems: 'center',
   },
   detailButtonText: {
@@ -317,27 +374,25 @@ const styles = StyleSheet.create({
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: '#ef4444',
-    padding: 12,
+    backgroundColor: '#fee2e2',
     borderRadius: 8,
+    padding: 12,
     alignItems: 'center',
   },
   cancelButtonText: {
-    color: 'white',
+    color: '#991b1b',
     fontSize: 14,
     fontWeight: '600',
   },
-  emptyState: {
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 32,
-    margin: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    paddingVertical: 80,
+  },
+  emptyIcon: {
+    fontSize: 64,
+    marginBottom: 16,
   },
   emptyTitle: {
     fontSize: 20,
@@ -345,20 +400,20 @@ const styles = StyleSheet.create({
     color: '#1f2937',
     marginBottom: 8,
   },
-  emptyDescription: {
+  emptyText: {
     fontSize: 16,
     color: '#6b7280',
     textAlign: 'center',
-    lineHeight: 24,
     marginBottom: 24,
+    paddingHorizontal: 32,
   },
-  createButton: {
+  browseButton: {
     backgroundColor: '#3b82f6',
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
-  createButtonText: {
+  browseButtonText: {
     color: 'white',
     fontSize: 16,
     fontWeight: '600',

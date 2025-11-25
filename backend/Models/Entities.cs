@@ -291,4 +291,22 @@ namespace backend.Models
         
         public DateTime CreatedAt { get; set; }
     }
+
+    public class VerificationCode
+    {
+        public int Id { get; set; }
+        
+        [Required, EmailAddress, StringLength(255)]
+        public string Email { get; set; } = string.Empty;
+        
+        [Required, StringLength(10)]
+        public string Code { get; set; } = string.Empty;
+        
+        [Required, StringLength(50)]
+        public string Purpose { get; set; } = string.Empty; // "registration", "password-reset"
+        
+        public DateTime CreatedAt { get; set; }
+        public DateTime ExpiresAt { get; set; }
+        public bool IsUsed { get; set; } = false;
+    }
 }

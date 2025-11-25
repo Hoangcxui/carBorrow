@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/Loading';
+import EmailVerification from '@/components/EmailVerification';
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -19,6 +20,8 @@ export default function RegisterPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [showVerification, setShowVerification] = useState(false);
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
   
   const { register, isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
@@ -73,6 +76,13 @@ export default function RegisterPage() {
 
     if (!validateForm()) return;
 
+    // Show email verification modal first
+    if (!isEmailVerified) {
+      setShowVerification(true);
+      return;
+    }
+
+    // Proceed with registration after email is verified
     setIsSubmitting(true);
     try {
       await register({
@@ -88,6 +98,13 @@ export default function RegisterPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleEmailVerified = () => {
+    setIsEmailVerified(true);
+    setShowVerification(false);
+    // Auto-submit form after verification
+    handleSubmit(new Event('submit') as any);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -109,6 +126,14 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      {showVerification && (
+        <EmailVerification 
+          email={formData.email} 
+          onVerified={handleEmailVerified}
+          onCancel={() => setShowVerification(false)}
+        />
+      )}
+      
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
           Create your account

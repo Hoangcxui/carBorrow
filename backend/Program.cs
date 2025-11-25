@@ -115,6 +115,7 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<IFileUploadService, FileUploadService>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 // builder.Services.AddScoped<IVehicleService, VehicleService>(); // TODO: Fix legacy field references
 // builder.Services.AddScoped<IBookingService, BookingService>(); // TODO: Fix legacy field references
 // builder.Services.AddScoped<IDashboardService, DashboardService>(); // TODO: Fix legacy field references
@@ -193,13 +194,13 @@ using (var scope = app.Services.CreateScope())
     {
         logger.LogInformation("Starting database setup...");
         
-        // Apply pending migrations automatically (or use EnsureCreated for quick dev setup)
-        // await context.Database.MigrateAsync();
-        // await context.Database.EnsureCreatedAsync(); // Creates DB from current DbContext schema
+        // Apply pending migrations automatically
+        await context.Database.MigrateAsync();
+        logger.LogInformation("Database migrations applied successfully.");
         
-        logger.LogInformation("Database setup skipped (SQL Server not available). Starting seeding...");
+        // Seed data
         await DbSeeder.SeedAsync(context);
-        logger.LogInformation("Database seeding skipped.");
+        logger.LogInformation("Database seeding completed.");
     }
     catch (Exception ex)
     {

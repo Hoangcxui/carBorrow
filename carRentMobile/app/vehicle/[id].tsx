@@ -8,12 +8,29 @@ import {
   TouchableOpacity,
   Alert,
   Dimensions,
+  ActivityIndicator,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Vehicle } from '@/types';
-import VehicleService from '@/services/VehicleService';
+import { VehicleApiService } from '@/services';
 
 const { width } = Dimensions.get('window');
+
+interface Vehicle {
+  id: number;
+  make: string;
+  model: string;
+  year: number;
+  color: string;
+  licensePlate: string;
+  dailyRate: number;
+  isAvailable: boolean;
+  categoryName: string;
+  seats: number;
+  transmission: string;
+  fuelType: string;
+  description: string;
+  imageUrl: string;
+}
 
 export default function VehicleDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,7 +47,7 @@ export default function VehicleDetailScreen() {
     
     try {
       setIsLoading(true);
-      const data = await VehicleService.getVehicleById(id);
+      const data = await VehicleApiService.getVehicleById(parseInt(id));
       setVehicle(data);
     } catch (error: any) {
       Alert.alert('Lỗi', error.message);
@@ -45,13 +62,14 @@ export default function VehicleDetailScreen() {
     
     router.push({
       pathname: '/booking/create',
-      params: { vehicleId: vehicle.id }
+      params: { vehicleId: vehicle.id.toString() }
     });
   };
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#3b82f6" />
         <Text style={styles.loadingText}>Đang tải...</Text>
       </View>
     );
@@ -79,7 +97,8 @@ export default function VehicleDetailScreen() {
         <Image source={{ uri: vehicle.imageUrl }} style={styles.vehicleImage} />
       ) : (
         <View style={[styles.vehicleImage, styles.noImage]}>
-          <Text style={styles.noImageText}>Không có ảnh</Text>
+          <Text style={styles.noImageText}>🚗</Text>
+          <Text style={styles.noImageSubtext}>Không có ảnh</Text>
         </View>
       )}
 
@@ -108,17 +127,33 @@ export default function VehicleDetailScreen() {
           <Text style={styles.sectionTitle}>Thông tin xe</Text>
           <View style={styles.infoGrid}>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Biển số</Text>
+              <Text style={styles.infoLabel}>🚘 Biển số</Text>
               <Text style={styles.infoValue}>{vehicle.licensePlate}</Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Màu sắc</Text>
+              <Text style={styles.infoLabel}>🎨 Màu sắc</Text>
               <Text style={styles.infoValue}>{vehicle.color}</Text>
             </View>
             <View style={styles.infoItem}>
-              <Text style={styles.infoLabel}>Danh mục</Text>
-              <Text style={styles.infoValue}>{vehicle.category?.name || 'Chưa phân loại'}</Text>
+              <Text style={styles.infoLabel}>📋 Danh mục</Text>
+              <Text style={styles.infoValue}>{vehicle.categoryName || 'Chưa phân loại'}</Text>
             </View>
+            <View style={styles.infoItem}>
+              <Text style={styles.infoLabel}>👥 Số chỗ</Text>
+              <Text style={styles.infoValue}>{vehicle.seats || 'N/A'} chỗ</Text>
+            </View>
+            {vehicle.transmission && (
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>⚙️ Hộp số</Text>
+                <Text style={styles.infoValue}>{vehicle.transmission}</Text>
+              </View>
+            )}
+            {vehicle.fuelType && (
+              <View style={styles.infoItem}>
+                <Text style={styles.infoLabel}>⛽ Nhiên liệu</Text>
+                <Text style={styles.infoValue}>{vehicle.fuelType}</Text>
+              </View>
+            )}
           </View>
         </View>
 
@@ -127,10 +162,13 @@ export default function VehicleDetailScreen() {
           <Text style={styles.sectionTitle}>Giá thuê</Text>
           <View style={styles.priceContainer}>
             <Text style={styles.price}>
-              {vehicle.pricePerDay.toLocaleString('vi-VN')} VNĐ
+              {vehicle.dailyRate.toLocaleString('vi-VN')} VNĐ
             </Text>
             <Text style={styles.priceUnit}>/ ngày</Text>
           </View>
+          <Text style={styles.priceNote}>
+            * Giá đã bao gồm bảo hiểm cơ bản
+          </Text>
         </View>
 
         {/* Mô tả */}
@@ -142,19 +180,25 @@ export default function VehicleDetailScreen() {
         )}
 
         {/* Nút đặt xe */}
-        {vehicle.isAvailable && (
+        {vehicle.isAvailable ? (
           <TouchableOpacity style={styles.bookButton} onPress={handleBookNow}>
             <Text style={styles.bookButtonText}>Đặt xe ngay</Text>
           </TouchableOpacity>
+        ) : (
+          <View style={styles.unavailableButton}>
+            <Text style={styles.unavailableButtonText}>Xe đang được thuê</Text>
+          </View>
         )}
 
         {/* Thông tin liên hệ */}
         <View style={styles.contactSection}>
           <Text style={styles.sectionTitle}>Cần hỗ trợ?</Text>
           <TouchableOpacity style={styles.contactButton}>
-            <Text style={styles.contactButtonText}>📞 Gọi ngay: 1900-xxxx</Text>
+            <Text style={styles.contactButtonText}>📞 Hotline: 028 3863 6636</Text>
           </TouchableOpacity>
         </View>
+
+        <View style={styles.spacer} />
       </View>
     </ScrollView>
   );
@@ -207,6 +251,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   noImageText: {
+    fontSize: 48,
+    marginBottom: 8,
+  },
+  noImageSubtext: {
     color: '#6b7280',
     fontSize: 16,
   },
@@ -309,6 +357,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6b7280',
     marginLeft: 8,
+  },
+  priceNote: {
+    fontSize: 14,
+    color: '#6b7280',
+    marginTop: 8,
+    fontStyle: 'italic',
   },
   descriptionSection: {
     backgroundColor: 'white',

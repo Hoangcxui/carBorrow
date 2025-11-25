@@ -4,21 +4,29 @@ import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 import ApiService from './ApiService';
 
-// Configure notification behavior
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Configure notification behavior only if not in Expo Go
+if (!Constants.expoConfig?.extra?.expoGo) {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: false,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+}
 
 export class NotificationService {
   private expoPushToken: string | null = null;
 
   async registerForPushNotificationsAsync(): Promise<string | null> {
+    // Skip notification setup in Expo Go
+    if (Constants.appOwnership === 'expo') {
+      console.log('Push notifications not available in Expo Go');
+      return null;
+    }
+
     let token = null;
 
     if (Device.isDevice) {

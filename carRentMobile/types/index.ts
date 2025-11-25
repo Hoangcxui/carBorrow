@@ -34,15 +34,16 @@ export interface Vehicle {
   year: number;
   licensePlate: string;
   color: string;
-  pricePerDay: number;
+  dailyRate: number; // Backend uses dailyRate instead of pricePerDay
+  pricePerDay?: number; // Keep for backward compatibility
   isAvailable: boolean;
   categoryId: string;
   category?: Category;
   imageUrl?: string;
   description?: string;
   seats?: number;
-  transmission?: 'automatic' | 'manual';
-  fuelType?: 'gasoline' | 'diesel' | 'electric' | 'hybrid';
+  transmission?: 'automatic' | 'manual' | '';
+  fuelType?: 'gasoline' | 'diesel' | 'electric' | 'hybrid' | '';
   createdAt: string;
   updatedAt: string;
 }

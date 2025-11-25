@@ -16,6 +16,7 @@ namespace backend.Models
         public DbSet<AuditLog> AuditLogs { get; set; }
         public DbSet<Payment> Payments { get; set; }
         public DbSet<Location> Locations { get; set; }
+        public DbSet<VerificationCode> VerificationCodes { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -166,6 +167,17 @@ namespace backend.Models
                       .WithMany(b => b.Payments)
                       .HasForeignKey(e => e.BookingId)
                       .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            // VerificationCode configuration
+            modelBuilder.Entity<VerificationCode>(entity =>
+            {
+                entity.HasKey(e => e.Id);
+                entity.Property(e => e.Email).IsRequired().HasMaxLength(255);
+                entity.Property(e => e.Code).IsRequired().HasMaxLength(10);
+                entity.Property(e => e.Purpose).IsRequired().HasMaxLength(50);
+                entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+                entity.HasIndex(e => new { e.Email, e.Code, e.Purpose });
             });
         }
     }
