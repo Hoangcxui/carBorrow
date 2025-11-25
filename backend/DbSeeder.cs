@@ -137,45 +137,45 @@ namespace backend.Services
                 {
                     new Location
                     {
-                        Name = "HUFLIT - Cơ sở 1 (Đinh Tiên Hoàng)",
-                        Address = "71 Đinh Tiên Hoàng, Phường Đa Kao, Quận 1, TP.HCM",
-                        Latitude = 10.7888,
-                        Longitude = 106.6951,
-                        PhoneNumber = "028 3822 2122",
-                        Description = "Cơ sở chính - Trụ sở Hành chính",
+                        Name = "HUFLIT - Cơ sở Sư Vạn Hạnh (Main Campus)",
+                        Address = "828 Sư Vạn Hạnh, Phường 12, Quận 10, TP.HCM",
+                        Latitude = 10.7714,
+                        Longitude = 106.6653,
+                        PhoneNumber = "028 3863 6636",
+                        Description = "Cơ sở chính - Trụ sở Hành chính và Học tập",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
                     new Location
                     {
-                        Name = "HUFLIT - Cơ sở 2 (Nguyễn Thị Minh Khai)",
-                        Address = "60 Nguyễn Thị Minh Khai, Phường 6, Quận 3, TP.HCM",
-                        Latitude = 10.7769,
-                        Longitude = 106.6878,
-                        PhoneNumber = "028 3930 0124",
-                        Description = "Khu học tập và thực hành",
+                        Name = "HUFLIT - Cơ sở Trường Sơn",
+                        Address = "32 Trường Sơn, Phường 4, Quận Tân Bình, TP.HCM",
+                        Latitude = 10.8013,
+                        Longitude = 106.6582,
+                        PhoneNumber = "028 3844 0091",
+                        Description = "Cơ sở học tập và thực hành gần sân bay",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
                     new Location
                     {
-                        Name = "HUFLIT - Cơ sở 3 (Trần Quang Khải)",
-                        Address = "252 Trần Quang Khải, Phường Tân Định, Quận 1, TP.HCM",
-                        Latitude = 10.7893,
-                        Longitude = 106.6918,
-                        PhoneNumber = "028 3822 7575",
-                        Description = "Khu giảng đường và phòng lab",
+                        Name = "HUFLIT - Cơ sở Ba Gia",
+                        Address = "52-70 Ba Gia, Phường 2, Quận Tân Bình, TP.HCM",
+                        Latitude = 10.8025,
+                        Longitude = 106.6519,
+                        PhoneNumber = "028 3842 3377",
+                        Description = "Cơ sở phụ trợ và hoạt động sinh viên",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     },
                     new Location
                     {
-                        Name = "HUFLIT - Cơ sở 4 (Pasteur)",
-                        Address = "98 Pasteur, Phường Nguyễn Thái Bình, Quận 1, TP.HCM",
-                        Latitude = 10.7794,
-                        Longitude = 106.6947,
-                        PhoneNumber = "028 3824 9999",
-                        Description = "Khu ký túc xá và hoạt động sinh viên",
+                        Name = "HUFLIT - Cơ sở Hóc Môn",
+                        Address = "806 Lê Quang Đạo, Phường Tân Thới Nhất, Quận 12, TP.HCM",
+                        Latitude = 10.8547,
+                        Longitude = 106.6271,
+                        PhoneNumber = "028 3755 5555",
+                        Description = "Cơ sở mở rộng và đào tạo từ xa",
                         IsActive = true,
                         CreatedAt = DateTime.UtcNow
                     }

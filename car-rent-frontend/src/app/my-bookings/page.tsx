@@ -57,7 +57,7 @@ export default function MyBookingsPage() {
       }
 
       const response = await fetch(
-        `/api/bookings?email=${encodeURIComponent(email)}`
+        `http://localhost:5001/api/booking/customer/${encodeURIComponent(email)}`
       );
 
       if (!response.ok) {
@@ -166,11 +166,11 @@ export default function MyBookingsPage() {
           </div>
         ) : bookings.length === 0 ? (
           <div className="bg-white rounded-lg shadow p-8 text-center">
-            <CalendarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <div className="text-6xl mb-4">🚗</div>
             <h2 className="text-xl font-semibold text-gray-900 mb-2">
-              Chưa có đặt xe nào
+              Chưa có lịch sử đặt xe
             </h2>
-            <p className="text-gray-600 mb-6">Hãy bắt đầu đặt xe ngay hôm nay</p>
+            <p className="text-gray-600 mb-6">Không tìm thấy đặt xe nào cho email: <strong>{localStorage.getItem('customerEmail')}</strong></p>
             <button
               onClick={() => router.push('/vehicles')}
               className="inline-block bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"

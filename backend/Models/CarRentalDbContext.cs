@@ -91,10 +91,10 @@ namespace backend.Models
             modelBuilder.Entity<Booking>(entity =>
             {
                 entity.HasKey(e => e.Id);
-                // entity.Property(e => e.TotalCost).HasColumnType("decimal(10,2)"); // TODO: Renamed to TotalAmount
+                entity.Property(e => e.TotalAmount).HasColumnType("decimal(10,2)");
                 entity.Property(e => e.Status).HasMaxLength(50).HasDefaultValue("Pending");
                 entity.Property(e => e.PickupLocation).HasMaxLength(255);
-                // entity.Property(e => e.ReturnLocation).HasMaxLength(255); // TODO: Renamed to DropoffLocation
+                entity.Property(e => e.DropoffLocation).HasMaxLength(255);
                 entity.Property(e => e.Review).HasMaxLength(1000);
                 entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
                 entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
@@ -107,6 +107,17 @@ namespace backend.Models
                 entity.HasOne(e => e.Vehicle)
                       .WithMany(v => v.Bookings)
                       .HasForeignKey(e => e.VehicleId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                      
+                // Location relationships
+                entity.HasOne(e => e.PickupLocationNav)
+                      .WithMany(l => l.PickupBookings)
+                      .HasForeignKey(e => e.PickupLocationId)
+                      .OnDelete(DeleteBehavior.Restrict);
+                      
+                entity.HasOne(e => e.DropoffLocationNav)
+                      .WithMany(l => l.ReturnBookings)
+                      .HasForeignKey(e => e.DropoffLocationId)
                       .OnDelete(DeleteBehavior.Restrict);
             });
 

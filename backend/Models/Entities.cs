@@ -175,6 +175,14 @@ namespace backend.Models
         [StringLength(10)]
         public string DropoffTime { get; set; } = string.Empty;
         
+        // Location FKs
+        public int? PickupLocationId { get; set; }
+        public Location? PickupLocationNav { get; set; }
+        
+        public int? DropoffLocationId { get; set; }
+        public Location? DropoffLocationNav { get; set; }
+        
+        // Keep string fields for backward compatibility
         [StringLength(255)]
         public string PickupLocation { get; set; } = string.Empty;
         

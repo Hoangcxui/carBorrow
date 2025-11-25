@@ -135,20 +135,35 @@ export default function QRPaymentModal({ isOpen, onClose, bookingId, amount, cus
           </div>
 
           {/* Action Buttons */}
-          <div className="flex gap-3">
+          <div className="space-y-3">
             <button
-              onClick={onClose}
-              className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all"
+              onClick={() => window.location.href = '/my-bookings'}
+              className="w-full px-6 py-4 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold rounded-xl transition-all shadow-lg flex items-center justify-center gap-2"
             >
-              Đóng
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Hoàn thành - Xem lịch sử đặt xe
             </button>
-            <button
-              onClick={() => window.location.href = '/dashboard'}
-              className="flex-1 px-6 py-3 bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 text-white font-bold rounded-xl transition-all shadow-md"
-            >
-              Xem đặt xe
-            </button>
+            <div className="flex gap-3">
+              <button
+                onClick={onClose}
+                className="flex-1 px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-xl transition-all"
+              >
+                Đóng
+              </button>
+              <button
+                onClick={() => window.location.href = '/dashboard'}
+                className="flex-1 px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-all"
+              >
+                Trang chủ
+              </button>
+            </div>
           </div>
+
+          <p className="text-center text-xs text-gray-500 mt-4">
+            💡 Bạn có thể hoàn thành đơn mà không cần đợi quét mã QR
+          </p>
         </div>
       </div>
     </div>

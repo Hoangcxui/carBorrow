@@ -84,8 +84,8 @@ export default function UserDashboardPage() {
       
       setCustomerEmail(email);
 
-      // Fetch bookings from API
-      const response = await fetch(`/api/bookings?email=${encodeURIComponent(email)}`);
+      // Fetch bookings from backend API
+      const response = await fetch(`http://localhost:5001/api/booking/customer/${encodeURIComponent(email)}`);
       
       if (!response.ok) {
         throw new Error('Failed to fetch bookings');

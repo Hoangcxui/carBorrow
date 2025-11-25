@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeftIcon,
@@ -211,12 +211,65 @@ const paymentStatusConfig = {
 };
 
 export default function AdminBookingsPage() {
-  const [bookings, setBookings] = useState(mockBookings);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('all');
   const [filterPaymentStatus, setFilterPaymentStatus] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState<any>(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+
+  // Fetch bookings from backend
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('http://localhost:5001/api/booking');
+        if (response.ok) {
+          const data = await response.json();
+          // Transform backend data to match UI format
+          const transformedBookings = data.map((booking: any) => ({
+            id: `BK${booking.id.toString().padStart(4, '0')}`,
+            customer: {
+              name: booking.customerName,
+              email: booking.customerEmail,
+              phone: booking.customerPhone
+            },
+            vehicle: {
+              make: 'Vehicle',
+              model: `#${booking.vehicleId}`,
+              year: 2023,
+              licensePlate: 'N/A'
+            },
+            pickupDate: booking.pickupDate,
+            dropoffDate: booking.dropoffDate,
+            pickupTime: booking.pickupTime,
+            dropoffTime: booking.dropoffTime,
+            pickupLocation: booking.pickupLocation,
+            dropoffLocation: booking.dropoffLocation,
+            status: booking.status,
+            totalAmount: booking.totalAmount,
+            paymentStatus: booking.paymentStatus,
+            paymentMethod: booking.paymentMethod,
+            bookingDate: booking.createdAt,
+            duration: Math.ceil((new Date(booking.dropoffDate).getTime() - new Date(booking.pickupDate).getTime()) / (1000 * 60 * 60 * 24)),
+            dailyRate: 45,
+            addons: booking.specialRequests ? booking.specialRequests.split(',') : [],
+            notes: booking.specialRequests || '',
+            driverLicense: booking.customerAddress
+          }));
+          setBookings(transformedBookings);
+        }
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+        toast.error('Không thể tải danh sách đặt xe');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchBookings();
+  }, []);
 
   // Filter bookings
   const filteredBookings = bookings.filter(booking => {
@@ -237,31 +290,73 @@ export default function AdminBookingsPage() {
       .reduce((sum, b) => sum + b.totalAmount, 0)
   };
 
-  const handleApproveBooking = (bookingId: string) => {
-    setBookings(prev => prev.map(booking => 
-      booking.id === bookingId 
-        ? { ...booking, status: 'confirmed' }
-        : booking
-    ));
-    toast.success('Đã duyệt đơn thuê');
+  const handleApproveBooking = async (bookingId: string) => {
+    try {
+      const numericId = parseInt(bookingId.replace('BK', ''));
+      const response = await fetch(`http://localhost:5001/api/booking/${numericId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Status: 'confirmed' })
+      });
+      
+      if (response.ok) {
+        setBookings(prev => prev.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, status: 'confirmed' }
+            : booking
+        ));
+        toast.success('Đã duyệt đơn thuê');
+      }
+    } catch (error) {
+      console.error('Error approving booking:', error);
+      toast.error('Không thể duyệt đơn thuê');
+    }
   };
 
-  const handleRejectBooking = (bookingId: string) => {
-    setBookings(prev => prev.map(booking => 
-      booking.id === bookingId 
-        ? { ...booking, status: 'cancelled' }
-        : booking
-    ));
-    toast.success('Đã từ chối đơn thuê');
+  const handleRejectBooking = async (bookingId: string) => {
+    try {
+      const numericId = parseInt(bookingId.replace('BK', ''));
+      const response = await fetch(`http://localhost:5001/api/booking/${numericId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Status: 'cancelled' })
+      });
+      
+      if (response.ok) {
+        setBookings(prev => prev.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, status: 'cancelled' }
+            : booking
+        ));
+        toast.success('Đã từ chối đơn thuê');
+      }
+    } catch (error) {
+      console.error('Error rejecting booking:', error);
+      toast.error('Không thể từ chối đơn thuê');
+    }
   };
 
-  const handleStatusChange = (bookingId: string, newStatus: string) => {
-    setBookings(prev => prev.map(booking => 
-      booking.id === bookingId 
-        ? { ...booking, status: newStatus }
-        : booking
-    ));
-    toast.success(`Đã cập nhật trạng thái thành ${statusConfig[newStatus as keyof typeof statusConfig].label}`);
+  const handleStatusChange = async (bookingId: string, newStatus: string) => {
+    try {
+      const numericId = parseInt(bookingId.replace('BK', ''));
+      const response = await fetch(`http://localhost:5001/api/booking/${numericId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Status: newStatus })
+      });
+      
+      if (response.ok) {
+        setBookings(prev => prev.map(booking => 
+          booking.id === bookingId 
+            ? { ...booking, status: newStatus }
+            : booking
+        ));
+        toast.success(`Đã cập nhật trạng thái thành ${statusConfig[newStatus as keyof typeof statusConfig].label}`);
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      toast.error('Không thể cập nhật trạng thái');
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -387,7 +482,18 @@ export default function AdminBookingsPage() {
 
           {/* Bookings List */}
           <div className="space-y-6">
-            {filteredBookings.map((booking) => (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <p className="mt-4 text-gray-600">Đang tải dữ liệu...</p>
+              </div>
+            ) : filteredBookings.length === 0 ? (
+              <div className="text-center py-12">
+                <CalendarDaysIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">Không có đơn thuê nào</p>
+              </div>
+            ) : (
+              filteredBookings.map((booking) => (
               <div key={booking.id} className="bg-white rounded-lg shadow-sm p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -547,7 +653,7 @@ export default function AdminBookingsPage() {
                       <strong>Đặt lúc:</strong> {formatDate(booking.bookingDate)}
                     </div>
                     <div>
-                      <strong>Thanh toán:</strong> {booking.paymentMethod}
+                      <strong>Thanh toán:</strong> {booking.paymentMethod === 'qr' ? 'QR/VietQR' : booking.paymentMethod === 'cod' ? 'Thanh toán khi nhận xe' : booking.paymentMethod}
                     </div>
                     <div>
                       <strong>GPLX:</strong> {booking.driverLicense}
@@ -555,10 +661,11 @@ export default function AdminBookingsPage() {
                   </div>
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
 
-          {filteredBookings.length === 0 && (
+          {!loading && filteredBookings.length === 0 && (
             <div className="text-center py-12">
               <CalendarDaysIcon className="h-12 w-12 text-gray-300 mx-auto mb-4" />
               <p className="text-gray-500">Không có đơn thuê nào</p>
@@ -673,7 +780,11 @@ export default function AdminBookingsPage() {
                       <div className="bg-gray-50 rounded-lg p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-500">Phương thức:</span>
-                          <span className="font-medium">{selectedBooking.paymentMethod}</span>
+                          <span className="font-medium">
+                            {selectedBooking.paymentMethod === 'qr' ? 'Thanh toán QR/VietQR' : 
+                             selectedBooking.paymentMethod === 'cod' ? 'Thanh toán khi nhận xe (COD)' : 
+                             selectedBooking.paymentMethod}
+                          </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-500">Trạng thái:</span>

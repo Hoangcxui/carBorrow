@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import QRPaymentModal from '@/components/QRPaymentModal';
+import LocationPicker from '@/components/LocationPicker';
 import toast from 'react-hot-toast';
 
 // Mock vehicle data
@@ -35,9 +36,10 @@ export default function BookVehiclePage() {
   
   const [showQRModal, setShowQRModal] = useState(false);
   const [createdBooking, setCreatedBooking] = useState<any>(null);
+  const [locations, setLocations] = useState<any[]>([]);
   const [bookingData, setBookingData] = useState({
-    pickupLocation: '1',
-    dropoffLocation: '1',
+    pickupLocationId: undefined as number | undefined,
+    dropoffLocationId: undefined as number | undefined,
     pickupDate: '',
     dropoffDate: '',
     pickupTime: '10:00 SA',
@@ -59,6 +61,22 @@ export default function BookVehiclePage() {
 
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Fetch locations on mount
+  useEffect(() => {
+    const fetchLocations = async () => {
+      try {
+        const response = await fetch('http://localhost:5001/api/location');
+        if (response.ok) {
+          const data = await response.json();
+          setLocations(data);
+        }
+      } catch (error) {
+        console.error('Error fetching locations:', error);
+      }
+    };
+    fetchLocations();
+  }, []);
 
   // Calculate rental duration and pricing
   const calculateRental = () => {
@@ -91,7 +109,7 @@ export default function BookVehiclePage() {
   };
 
   const validateStep1 = () => {
-    const required = ['pickupLocation', 'dropoffLocation', 'pickupDate', 'dropoffDate', 'pickupTime', 'dropoffTime'];
+    const required = ['pickupLocationId', 'dropoffLocationId', 'pickupDate', 'dropoffDate', 'pickupTime', 'dropoffTime'];
     return required.every(field => bookingData[field as keyof typeof bookingData]);
   };
 
@@ -121,6 +139,10 @@ export default function BookVehiclePage() {
     setIsSubmitting(true);
     
     try {
+      // Get location names from IDs
+      const pickupLoc = locations.find(loc => loc.id === bookingData.pickupLocationId);
+      const dropoffLoc = locations.find(loc => loc.id === bookingData.dropoffLocationId);
+      
       // Create booking payload
       const bookingPayload = {
         vehicleId: parseInt(params.id as string) || 1,
@@ -132,33 +154,38 @@ export default function BookVehiclePage() {
         dropoffDate: bookingData.dropoffDate,
         pickupTime: bookingData.pickupTime,
         dropoffTime: bookingData.dropoffTime,
-        pickupLocation: pickupLocations.find(loc => loc.id.toString() === bookingData.pickupLocation)?.name || 'Main Office',
-        dropoffLocation: pickupLocations.find(loc => loc.id.toString() === bookingData.dropoffLocation)?.name || 'Main Office',
+        pickupLocationId: bookingData.pickupLocationId,
+        dropoffLocationId: bookingData.dropoffLocationId,
+        pickupLocation: pickupLoc?.name || 'Unknown Location',
+        dropoffLocation: dropoffLoc?.name || 'Unknown Location',
         totalAmount: pricing.total,
         paymentMethod: bookingData.paymentMethod || 'cod',
         specialRequests: `Insurance: ${bookingData.addInsurance}, GPS: ${bookingData.addGPS}, Child Seat: ${bookingData.addChildSeat}`
       };
 
-      const response = await fetch('/api/bookings', {
+      const response = await fetch('http://localhost:5001/api/booking', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(bookingPayload)
       });
 
       if (!response.ok) {
-        throw new Error('Booking failed');
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Booking failed');
       }
 
-      const savedBooking = await response.json();
+      const result = await response.json();
+      const bookingId = result.bookingId;
+      
       localStorage.setItem('customerEmail', contactInfo.email);
-      setCreatedBooking(savedBooking);
+      setCreatedBooking({ ...bookingPayload, id: bookingId });
 
       // Show QR modal for QR payment, otherwise redirect
       if (bookingData.paymentMethod === 'qr') {
         setShowQRModal(true);
       } else {
-        toast.success('Đặt xe thành công! Kiểm tra email để xem chi tiết.');
-        setTimeout(() => router.push('/dashboard'), 2000);
+        toast.success('Đặt xe thành công! Vui lòng thanh toán khi nhận xe.');
+        setTimeout(() => router.push('/my-bookings'), 2000);
       }
     } catch (error) {
       toast.error('Đặt xe thất bại. Vui lòng thử lại.');
@@ -244,42 +271,18 @@ export default function BookVehiclePage() {
                   <h2 className="text-xl font-semibold text-gray-900 mb-6">Chi tiết thuê xe</h2>
                   
                   {/* Location Selection */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Địa điểm lấy xe *
-                      </label>
-                      <select
-                        value={bookingData.pickupLocation}
-                        onChange={(e) => handleInputChange('pickupLocation', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        {pickupLocations.map(location => (
-                          <option key={location.id} value={location.id} disabled={!location.available}>
-                            {location.name} - {location.address}
-                            {!location.available && ' (Không khả dụng)'}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Địa điểm trả xe *
-                      </label>
-                      <select
-                        value={bookingData.dropoffLocation}
-                        onChange={(e) => handleInputChange('dropoffLocation', e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      >
-                        {pickupLocations.map(location => (
-                          <option key={location.id} value={location.id} disabled={!location.available}>
-                            {location.name} - {location.address}
-                            {!location.available && ' (Không khả dụng)'}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                  <div className="space-y-6 mb-6">
+                    <LocationPicker
+                      label="Địa điểm lấy xe"
+                      value={bookingData.pickupLocationId}
+                      onChange={(locationId) => handleInputChange('pickupLocationId', locationId)}
+                    />
+                    
+                    <LocationPicker
+                      label="Địa điểm trả xe"
+                      value={bookingData.dropoffLocationId}
+                      onChange={(locationId) => handleInputChange('dropoffLocationId', locationId)}
+                    />
                   </div>
 
                   {/* Date & Time Selection */}
@@ -529,15 +532,20 @@ export default function BookVehiclePage() {
                     <div className="grid grid-cols-1 gap-4">
                       {/* QR Payment */}
                       <div
-                        className="border-2 border-primary-500 bg-primary-50 rounded-lg p-5 cursor-pointer transition-all shadow-md"
+                        onClick={() => handleInputChange('paymentMethod', 'qr')}
+                        className={`border-2 rounded-lg p-5 cursor-pointer transition-all ${
+                          bookingData.paymentMethod === 'qr'
+                            ? 'border-primary-500 bg-primary-50 shadow-md'
+                            : 'border-gray-200 hover:border-primary-300'
+                        }`}
                       >
                         <div className="flex items-start">
                           <input
                             type="radio"
                             name="paymentMethod"
                             value="qr"
-                            checked={true}
-                            readOnly
+                            checked={bookingData.paymentMethod === 'qr'}
+                            onChange={() => handleInputChange('paymentMethod', 'qr')}
                             className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 mr-4 mt-1"
                           />
                           <div className="flex-1">
@@ -557,13 +565,20 @@ export default function BookVehiclePage() {
 
                       {/* COD Payment */}
                       <div
-                        className="border-2 border-gray-200 hover:border-gray-300 hover:shadow-sm rounded-lg p-5 cursor-pointer transition-all"
+                        onClick={() => handleInputChange('paymentMethod', 'cod')}
+                        className={`border-2 rounded-lg p-5 cursor-pointer transition-all ${
+                          bookingData.paymentMethod === 'cod'
+                            ? 'border-primary-500 bg-primary-50 shadow-md'
+                            : 'border-gray-200 hover:border-primary-300'
+                        }`}
                       >
                         <div className="flex items-start">
                           <input
                             type="radio"
                             name="paymentMethod"
                             value="cod"
+                            checked={bookingData.paymentMethod === 'cod'}
+                            onChange={() => handleInputChange('paymentMethod', 'cod')}
                             className="h-5 w-5 text-primary-600 focus:ring-primary-500 border-gray-300 mr-4 mt-1"
                           />
                           <div className="flex-1">
