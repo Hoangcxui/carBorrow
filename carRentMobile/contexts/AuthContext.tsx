@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User, AuthResult } from '../types';
 import AuthService from '../services/AuthService';
+import StorageService from '../services/StorageService';
 
 interface AuthContextType {
   user: User | null;
@@ -9,6 +10,7 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, confirmPassword: string, fullName: string, phoneNumber?: string) => Promise<void>;
   logout: () => Promise<void>;
+  getToken: () => Promise<string | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -81,6 +83,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  const getToken = async (): Promise<string | null> => {
+    try {
+      return await StorageService.getItem('accessToken');
+    } catch (error) {
+      console.error('Failed to get token:', error);
+      return null;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     isLoading,
@@ -88,6 +99,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     login,
     register,
     logout,
+    getToken,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

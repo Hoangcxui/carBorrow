@@ -23,12 +23,13 @@ class AuthApiService {
       
       // Backend returns: { message, accessToken, refreshToken }
       // Convert to ApiResponse format
+      const data: any = response.data;
       return {
         success: true,
-        message: response.data.message,
+        message: data.message,
         data: {
-          accessToken: response.data.accessToken,
-          refreshToken: response.data.refreshToken
+          accessToken: data.accessToken,
+          refreshToken: data.refreshToken
         }
       };
     } catch (error: any) {
@@ -85,7 +86,7 @@ class AuthApiService {
    */
   async getCurrentUser(): Promise<ApiResponse> {
     try {
-      const response = await ApiService.get('/api/auth/me');
+      const response = await ApiService.get('/api/auth/profile');
       return response.data as ApiResponse;
     } catch (error: any) {
       throw this.handleError(error);

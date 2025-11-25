@@ -195,8 +195,15 @@ using (var scope = app.Services.CreateScope())
         logger.LogInformation("Starting database setup...");
         
         // Apply pending migrations automatically
-        await context.Database.MigrateAsync();
-        logger.LogInformation("Database migrations applied successfully.");
+        try
+        {
+            await context.Database.MigrateAsync();
+            logger.LogInformation("Database migrations applied successfully.");
+        }
+        catch (Exception migrationEx)
+        {
+            logger.LogWarning(migrationEx, "Migration warning - continuing with seeding...");
+        }
         
         // Seed data
         await DbSeeder.SeedAsync(context);

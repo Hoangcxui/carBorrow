@@ -18,100 +18,51 @@ interface Vehicle {
   fuelType: string;
   isAvailable: boolean;
   categoryName: string;
-  rating: number;
-  reviewCount: number;
-  images: string[];
-  features: string[];
+  imageUrl?: string;
+  description?: string;
+  features?: string;
+  status?: string;
 }
 
-// Mock data for demo
-const mockVehicles: Vehicle[] = [
-  {
-    id: 1,
-    make: 'Toyota',
-    model: 'Camry',
-    year: 2023,
-    color: 'Silver',
-    dailyRate: 45,
-    seats: 5,
-    transmission: 'Automatic',
-    fuelType: 'Gasoline',
-    isAvailable: true,
-    categoryName: 'Sedan',
-    rating: 4.8,
-    reviewCount: 124,
-    images: ['/api/placeholder/400/300'],
-    features: ['GPS Navigation', 'Bluetooth', 'Air Conditioning', 'USB Ports']
-  },
-  {
-    id: 2,
-    make: 'Honda',
-    model: 'CR-V',
-    year: 2024,
-    color: 'White',
-    dailyRate: 55,
-    seats: 7,
-    transmission: 'Automatic',
-    fuelType: 'Hybrid',
-    isAvailable: true,
-    categoryName: 'SUV',
-    rating: 4.9,
-    reviewCount: 98,
-    images: ['/api/placeholder/400/300'],
-    features: ['GPS Navigation', 'Backup Camera', 'Heated Seats', 'Sunroof']
-  },
-  {
-    id: 3,
-    make: 'BMW',
-    model: 'X3',
-    year: 2023,
-    color: 'Black',
-    dailyRate: 85,
-    seats: 5,
-    transmission: 'Automatic',
-    fuelType: 'Gasoline',
-    isAvailable: true,
-    categoryName: 'Luxury SUV',
-    rating: 4.7,
-    reviewCount: 67,
-    images: ['/api/placeholder/400/300'],
-    features: ['Premium Sound', 'Leather Seats', 'All-Wheel Drive', 'Parking Assist']
-  },
-  {
-    id: 4,
-    make: 'Tesla',
-    model: 'Model 3',
-    year: 2024,
-    color: 'Blue',
-    dailyRate: 75,
-    seats: 5,
-    transmission: 'Electric',
-    fuelType: 'Electric',
-    isAvailable: false,
-    categoryName: 'Electric',
-    rating: 4.9,
-    reviewCount: 156,
-    images: ['/api/placeholder/400/300'],
-    features: ['Autopilot', 'Supercharging', 'Premium Interior', 'Mobile App']
-  }
-];
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 
-const categories = ['All', 'Sedan', 'SUV', 'Luxury SUV', 'Electric'];
+const categories = ['All', 'Economy', 'Sedan', 'SUV', 'Luxury', 'Van'];
 const priceRanges = [
-  { label: 'Dưới $50', min: 0, max: 50 },
-  { label: '$50 - $75', min: 50, max: 75 },
-  { label: '$75 - $100', min: 75, max: 100 },
-  { label: 'Trên $100', min: 100, max: 999 }
+  { label: 'Dưới 500K', min: 0, max: 500000 },
+  { label: '500K - 1M', min: 500000, max: 1000000 },
+  { label: '1M - 2M', min: 1000000, max: 2000000 },
+  { label: 'Trên 2M', min: 2000000, max: 9999999 }
 ];
 
 export default function VehiclesPage() {
-  const [vehicles, setVehicles] = useState<Vehicle[]>(mockVehicles);
-  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>(mockVehicles);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [filteredVehicles, setFilteredVehicles] = useState<Vehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [selectedPriceRange, setSelectedPriceRange] = useState<{min: number, max: number} | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState('featured');
+
+  // Fetch vehicles from API
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${API_BASE_URL}/api/vehicle`);
+        const data = await response.json();
+        const vehiclesData = data.data || [];
+        setVehicles(vehiclesData);
+        setFilteredVehicles(vehiclesData);
+      } catch (error) {
+        console.error('Error fetching vehicles:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchVehicles();
+  }, []);
 
   // Filter and search functionality
   useEffect(() => {
@@ -287,21 +238,36 @@ export default function VehiclesPage() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                {filteredVehicles.map((vehicle) => (
+                {isLoading ? (
+                  <div className="col-span-full text-center py-12">
+                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+                    <p className="mt-4 text-gray-600">Đang tải xe...</p>
+                  </div>
+                ) : filteredVehicles.length === 0 ? (
+                  <div className="col-span-full text-center py-12">
+                    <p className="text-gray-600">Không tìm thấy xe nào phù hợp</p>
+                  </div>
+                ) : (
+                  filteredVehicles.map((vehicle) => (
                   <div key={vehicle.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
                     {/* Vehicle Image */}
                     <div className="relative h-48 bg-gray-200">
-                      <div className="absolute inset-0 flex items-center justify-center text-gray-400">
-                        {vehicle.make} {vehicle.model}
-                      </div>
+                      {vehicle.imageUrl ? (
+                        <img 
+                          src={vehicle.imageUrl} 
+                          alt={`${vehicle.make} ${vehicle.model}`}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-gray-400">
+                          {vehicle.make} {vehicle.model}
+                        </div>
+                      )}
                       {!vehicle.isAvailable && (
                         <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded text-xs font-medium">
                           Không có sẵn
                         </div>
                       )}
-                      <div className="absolute top-3 right-3 bg-yellow-500 text-white rounded-full px-2 py-1 text-xs font-bold">
-                        {vehicle.rating}
-                      </div>
                     </div>
 
                     {/* Vehicle Info */}
@@ -313,52 +279,34 @@ export default function VehiclesPage() {
                         <span className="text-sm text-gray-500">{vehicle.categoryName}</span>
                       </div>
 
-                      <div className="flex items-center mb-3">
-                        <div className="flex items-center">
-                          <span className="text-yellow-600 font-bold text-sm">Đánh giá: {vehicle.rating}</span>
-                          <span className="ml-2 text-sm text-gray-600">
-                            ({vehicle.reviewCount} đánh giá)
-                          </span>
-                        </div>
-                      </div>
-
                       {/* Vehicle Features */}
                       <div className="grid grid-cols-2 gap-2 mb-4 text-xs text-gray-600">
                         <div className="flex items-center font-semibold">
-                          {vehicle.seats} chỗ ngồi
+                          👥 {vehicle.seats} chỗ
                         </div>
                         <div className="flex items-center font-semibold">
-                          {vehicle.transmission}
+                          ⚙️ {vehicle.transmission}
                         </div>
                         <div className="flex items-center font-semibold">
-                          {vehicle.fuelType}
+                          ⛽ {vehicle.fuelType}
                         </div>
                         <div className="text-gray-500 font-semibold">
-                          {vehicle.color}
+                          🎨 {vehicle.color}
                         </div>
                       </div>
 
                       {/* Features List */}
-                      <div className="mb-4">
-                        <div className="flex flex-wrap gap-1">
-                          {vehicle.features.slice(0, 2).map((feature, index) => (
-                            <span key={index} className="inline-block bg-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
-                              {feature}
-                            </span>
-                          ))}
-                          {vehicle.features.length > 2 && (
-                            <span className="text-xs text-gray-500">
-                              +{vehicle.features.length - 2} more
-                            </span>
-                          )}
+                      {vehicle.features && (
+                        <div className="mb-4">
+                          <p className="text-xs text-gray-600 line-clamp-2">{vehicle.features}</p>
                         </div>
-                      </div>
+                      )}
 
                       {/* Price and Action */}
                       <div className="flex items-center justify-between">
                         <div className="text-2xl font-bold text-primary-600">
-                          ${vehicle.dailyRate}
-                          <span className="text-sm font-normal text-gray-500">/day</span>
+                          {(vehicle.dailyRate / 1000).toFixed(0)}K VND
+                          <span className="text-sm font-normal text-gray-500">/ngày</span>
                         </div>
                         
                         <div className="flex gap-2">
@@ -383,16 +331,8 @@ export default function VehiclesPage() {
                       </div>
                     </div>
                   </div>
-                ))}
+                )))}
               </div>
-
-              {/* No Results */}
-              {filteredVehicles.length === 0 && (
-                <div className="text-center py-12">
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">Không tìm thấy xe</h3>
-                  <p className="text-gray-600">Thử điều chỉnh tìm kiếm hoặc bộ lọc của bạn</p>
-                </div>
-              )}
             </div>
           </div>
         </div>

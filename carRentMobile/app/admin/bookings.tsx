@@ -12,10 +12,13 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/contexts/AuthContext';
 import axios from 'axios';
-import { API_BASE_URL } from '@/config';
+import config from '@/config';
+
+const API_BASE_URL = config.API_BASE_URL;
 
 interface Booking {
-  bookingId: number;
+  id: number;
+  bookingId?: number;
   vehicleId: number;
   customerName: string;
   customerEmail: string;
@@ -44,11 +47,14 @@ export default function AdminBookingsScreen() {
   const loadBookings = async () => {
     try {
       const token = await getToken();
-      const response = await axios.get(`${API_BASE_URL}/api/booking/all`, {
+      const response = await axios.get(`${API_BASE_URL}/api/booking`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       
-      let filteredBookings = response.data;
+      // Backend returns { value: [...], Count: n }, extract the value array
+      const bookingsData = response.data.value || response.data;
+      
+      let filteredBookings = bookingsData;
       if (filter !== 'all') {
         filteredBookings = filteredBookings.filter((b: Booking) => 
           b.status.toLowerCase() === filter
@@ -170,9 +176,9 @@ export default function AdminBookingsScreen() {
           </View>
         ) : (
           bookings.map((booking) => (
-            <View key={booking.bookingId} style={styles.bookingCard}>
+            <View key={booking.id} style={styles.bookingCard}>
               <View style={styles.bookingHeader}>
-                <Text style={styles.bookingId}>#{booking.bookingId}</Text>
+                <Text style={styles.bookingId}>#{booking.id}</Text>
                 <View style={[styles.statusBadge, { backgroundColor: getStatusColor(booking.status) }]}>
                   <Text style={styles.statusText}>{getStatusText(booking.status)}</Text>
                 </View>
@@ -211,13 +217,13 @@ export default function AdminBookingsScreen() {
                   <View style={styles.actions}>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.confirmButton]}
-                      onPress={() => confirmStatusChange(booking.bookingId, 'Confirmed')}
+                      onPress={() => confirmStatusChange(booking.id, 'Confirmed')}
                     >
                       <Text style={styles.actionButtonText}>Duyệt</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.cancelButton]}
-                      onPress={() => confirmStatusChange(booking.bookingId, 'Cancelled')}
+                      onPress={() => confirmStatusChange(booking.id, 'Cancelled')}
                     >
                       <Text style={styles.actionButtonText}>Từ chối</Text>
                     </TouchableOpacity>
@@ -227,7 +233,7 @@ export default function AdminBookingsScreen() {
                 {booking.status.toLowerCase() === 'confirmed' && (
                   <TouchableOpacity
                     style={[styles.actionButton, styles.completeButton]}
-                    onPress={() => confirmStatusChange(booking.bookingId, 'Completed')}
+                    onPress={() => confirmStatusChange(booking.id, 'Completed')}
                   >
                     <Text style={styles.actionButtonText}>Hoàn thành</Text>
                   </TouchableOpacity>

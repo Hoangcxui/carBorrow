@@ -20,7 +20,8 @@ class VehicleApiService {
     try {
       const queryString = params ? this.buildQueryString(params) : '';
       const response = await ApiService.get(`/api/vehicle${queryString}`);
-      return response.data;
+      // Backend returns { data: [...], page, pageSize, totalCount }
+      return response.data.data || response.data;
     } catch (error: any) {
       throw this.handleError(error);
     }

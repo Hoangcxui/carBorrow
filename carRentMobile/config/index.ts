@@ -51,4 +51,5 @@ const config = {
   ENABLE_LOGS: __DEV__,
 };
 
+export const API_BASE_URL = config.API_BASE_URL;
 export default config;
